@@ -14,6 +14,7 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/Path.h"
 #include <CoreServices/CoreServices.h>
+#include <FSEvents/FSEvents.h>
 #include <TargetConditionals.h>
 
 using namespace llvm;
