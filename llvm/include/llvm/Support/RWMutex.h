@@ -19,12 +19,29 @@
 #include <mutex>
 #include <shared_mutex>
 
+#if defined(__APPLE__)
 // std::shared_timed_mutex is only availble on macOS 10.12 and later.
-#if defined(__APPLE__) && defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
+#if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
 #if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 101200
 #define LLVM_USE_RW_MUTEX_IMPL
 #endif
+// std::shared_timed_mutex is only availble on iOS 10 and later.
+#elif defined(__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__)
+#if __ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__ < 100000
+#define LLVM_USE_RW_MUTEX_IMPL
 #endif
+// std::shared_timed_mutex is only availble on tvOS 10 and later.
+#elif defined(__ENVIRONMENT_TV_OS_VERSION_MIN_REQUIRED__)
+#if __ENVIRONMENT_TV_OS_VERSION_MIN_REQUIRED__ < 100000
+#define LLVM_USE_RW_MUTEX_IMPL
+#endif
+// std::shared_timed_mutex is only availble on watchOS 3 and later.
+#elif defined(__ENVIRONMENT_WATCH_OS_VERSION_MIN_REQUIRED__)
+#if __ENVIRONMENT_WATCH_OS_VERSION_MIN_REQUIRED__ < 30000
+#define LLVM_USE_RW_MUTEX_IMPL
+#endif
+#endif
+#endif // __APPLE__
 
 namespace llvm {
 namespace sys {
