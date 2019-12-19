@@ -287,15 +287,15 @@ int main(int argc, char **argv) {
 
   // Check to see if we are inside a development tree by comparing to possible
   // locations (prefix style or CMake style).
-  if (sys::fs::equivalent(CurrentExecPrefix, LLVM_OBJ_ROOT)) {
+  if (sys::fs::equivalent(CurrentExecPrefix, "/usr/src/llvm/build")) {
     IsInDevelopmentTree = true;
     DevelopmentTreeLayout = CMakeStyle;
-    ActiveObjRoot = LLVM_OBJ_ROOT;
+    ActiveObjRoot = "/usr/src/llvm/build";
   } else if (sys::fs::equivalent(sys::path::parent_path(CurrentExecPrefix),
-                                 LLVM_OBJ_ROOT)) {
+                                 "/usr/src/llvm/build")) {
     IsInDevelopmentTree = true;
     DevelopmentTreeLayout = CMakeBuildModeStyle;
-    ActiveObjRoot = LLVM_OBJ_ROOT;
+    ActiveObjRoot = "/usr/src/llvm/build";
   } else {
     IsInDevelopmentTree = false;
     DevelopmentTreeLayout = CMakeStyle; // Initialized to avoid warnings.
@@ -307,7 +307,7 @@ int main(int argc, char **argv) {
               ActiveCMakeDir;
   std::string ActiveIncludeOption;
   if (IsInDevelopmentTree) {
-    ActiveIncludeDir = std::string(LLVM_SRC_ROOT) + "/include";
+    ActiveIncludeDir = std::string("/usr/src/llvm") + "/include";
     ActivePrefix = CurrentExecPrefix;
 
     // CMake organizes the products differently than a normal prefix style
@@ -562,7 +562,7 @@ int main(int argc, char **argv) {
       } else if (Arg == "--obj-root") {
         OS << ActivePrefix << '\n';
       } else if (Arg == "--src-root") {
-        OS << LLVM_SRC_ROOT << '\n';
+        OS << "/usr/src/llvm" << '\n';
       } else if (Arg == "--ignore-libllvm") {
         LinkDyLib = false;
         LinkMode = BuiltSharedLibs ? LinkModeShared : LinkModeAuto;
