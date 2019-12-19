@@ -445,6 +445,24 @@ void InitHeaderSearch::AddDefaultIncludePaths(const LangOptions &Lang,
   if (triple.isOSDarwin()) {
     if (HSOpts.UseStandardSystemIncludes) {
       // Add the default framework include paths on Darwin.
+      if (!HasSysroot) {
+        switch (triple.getOS()) {
+            case llvm::Triple::IOS:
+                AddPath("/usr/share/SDKs/iPhoneOS.sdk/System/Library/Frameworks", System, true);
+                AddPath("/usr/share/SDKs/iPhoneOS.sdk/Library/Frameworks", System, true);
+                break;
+            case llvm::Triple::TvOS:
+                AddPath("/usr/share/SDKs/AppleTVOS.sdk/System/Library/Frameworks", System, true);
+                AddPath("/usr/share/SDKs/AppleTVOS.sdk/Library/Frameworks", System, true);
+                break;
+            case llvm::Triple::WatchOS:
+                AddPath("/usr/share/SDKs/WatchOS.sdk/System/Library/Frameworks", System, true);
+                AddPath("/usr/share/SDKs/WatchOS.sdk/Library/Frameworks", System, true);
+                break;
+            default:
+                break;
+        }
+      }
       AddPath("/System/Library/Frameworks", System, true);
       AddPath("/Library/Frameworks", System, true);
     }

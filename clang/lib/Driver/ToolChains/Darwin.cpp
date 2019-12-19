@@ -1709,10 +1709,8 @@ std::string getOSVersion(llvm::Triple::OSType OS, const llvm::Triple &Triple,
           << Triple.getOSName();
     break;
   case llvm::Triple::IOS:
-    Triple.getiOSVersion(Major, Minor, Micro);
-    break;
   case llvm::Triple::TvOS:
-    Triple.getOSVersion(Major, Minor, Micro);
+    Triple.getiOSVersion(Major, Minor, Micro);
     break;
   case llvm::Triple::WatchOS:
     Triple.getWatchOSVersion(Major, Minor, Micro);
@@ -1736,8 +1734,12 @@ inferDeploymentTargetFromArch(DerivedArgList &Args, const Darwin &Toolchain,
 
   StringRef MachOArchName = Toolchain.getMachOArchName(Args);
   if (MachOArchName == "armv7" || MachOArchName == "armv7s" ||
-      MachOArchName == "arm64" || MachOArchName == "arm64e")
-    OSTy = llvm::Triple::IOS;
+      MachOArchName == "arm64" || MachOArchName == "arm64e") {
+    if (Triple.getOS() == llvm::Triple::TvOS)
+      OSTy = llvm::Triple::TvOS;
+    else
+      OSTy = llvm::Triple::IOS;
+  }
   else if (MachOArchName == "armv7k" || MachOArchName == "arm64_32")
     OSTy = llvm::Triple::WatchOS;
   else if (MachOArchName != "armv6m" && MachOArchName != "armv7m" &&
@@ -1940,6 +1942,28 @@ void Darwin::AddDeploymentTarget(DerivedArgList &Args) const {
     NativeTargetVersion = OSTarget->getNativeTargetVersion();
   setTarget(Platform, Environment, Major, Minor, Micro, NativeTargetVersion);
 
+  if (!Args.getLastArg(options::OPT_isysroot)) {
+    llvm::Triple DefaultTriple(LLVM_DEFAULT_TARGET_TRIPLE);
+    switch (Platform) {
+      case DarwinPlatformKind::MacOS:
+        if (DefaultTriple.getOS() != llvm::Triple::MacOSX)
+          Args.append(Args.MakeSeparateArg(nullptr, Opts.getOption(options::OPT_isysroot), "/usr/share/SDKs/MacOSX.sdk"));
+        break;
+      case DarwinPlatformKind::IPhoneOS:
+        if (DefaultTriple.getOS() != llvm::Triple::IOS)
+          Args.append(Args.MakeSeparateArg(nullptr, Opts.getOption(options::OPT_isysroot), "/usr/share/SDKs/iPhoneOS.sdk"));
+        break;
+      case DarwinPlatformKind::TvOS:
+        if (DefaultTriple.getOS() != llvm::Triple::TvOS)
+          Args.append(Args.MakeSeparateArg(nullptr, Opts.getOption(options::OPT_isysroot), "/usr/share/SDKs/AppleTVOS.sdk"));
+        break;
+      case DarwinPlatformKind::WatchOS:
+        if (DefaultTriple.getOS() != llvm::Triple::WatchOS)
+          Args.append(Args.MakeSeparateArg(nullptr, Opts.getOption(options::OPT_isysroot), "/usr/share/SDKs/WatchOS.sdk"));
+        break;
+    }
+  }
+
   if (const Arg *A = Args.getLastArg(options::OPT_isysroot)) {
     StringRef SDK = getSDKName(A->getValue());
     if (SDK.size() > 0) {
@@ -2009,6 +2033,21 @@ void DarwinClang::AddClangSystemIncludeArgs(const llvm::opt::ArgList &DriverArgs
     SmallString<128> P(Sysroot);
     llvm::sys::path::append(P, "usr", "include");
     addExternCSystemInclude(DriverArgs, CC1Args, P.str());
+    if (Sysroot == "/") {
+      switch (getTriple().getOS()) {
+          case llvm::Triple::IOS:
+              addExternCSystemInclude(DriverArgs, CC1Args, "/usr/share/SDKs/iPhoneOS.sdk/usr/include");
+              break;
+          case llvm::Triple::TvOS:
+              addExternCSystemInclude(DriverArgs, CC1Args, "/usr/share/SDKs/AppleTVOS.sdk/usr/include");
+              break;
+          case llvm::Triple::WatchOS:
+              addExternCSystemInclude(DriverArgs, CC1Args, "/usr/share/SDKs/WatchOS.sdk/usr/include");
+              break;
+          default:
+              break;
+      }
+    }
   }
 }
 
