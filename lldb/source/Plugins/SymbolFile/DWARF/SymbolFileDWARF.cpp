@@ -191,15 +191,7 @@ static bool ParseLLVMLineTablePrologue(lldb_private::DWARFContext &context,
   llvm::DWARFDataExtractor data = context.getOrLoadLineData().GetAsLLVM();
   llvm::DWARFContext &ctx = context.GetAsLLVM();
   uint64_t offset = line_offset;
-  llvm::Error error = prologue.parse(
-      data, &offset,
-      [&](llvm::Error e) {
-        success = false;
-        LLDB_LOG_ERROR(log, std::move(e),
-                       "SymbolFileDWARF::ParseSupportFiles failed to parse "
-                       "line table prologue: {0}");
-      },
-      ctx, nullptr);
+  llvm::Error error = prologue.parse(data, &offset, ctx, nullptr);
   if (error) {
     LLDB_LOG_ERROR(log, std::move(error),
                    "SymbolFileDWARF::ParseSupportFiles failed to parse line "
@@ -4038,6 +4030,11 @@ SymbolFileDWARF::CollectCallEdges(ModuleSP module, DWARFDIE function_die) {
 
 std::vector<std::unique_ptr<lldb_private::CallEdge>>
 SymbolFileDWARF::ParseCallEdgesInFunction(UserID func_id) {
+  // ParseCallEdgesInFunction must be called at the behest of an exclusively
+  // locked lldb::Function instance. Storage for parsed call edges is owned by
+  // the lldb::Function instance: locking at the SymbolFile level would be too
+  // late, because the act of storing results from ParseCallEdgesInFunction
+  // would be racy.
   DWARFDIE func_die = GetDIE(func_id.GetID());
   if (func_die.IsValid())
     return CollectCallEdges(GetObjectFile()->GetModule(), func_die);

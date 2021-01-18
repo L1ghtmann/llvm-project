@@ -787,7 +787,7 @@ bool MachO::HasNativeLLVMSupport() const { return true; }
 
 ToolChain::CXXStdlibType Darwin::GetDefaultCXXStdlibType() const {
   // Default to use libc++ on OS X 10.9+ and iOS 7+.
-  if ((isTargetMacOSBased() && !isMacosxVersionLT(10, 9)) ||
+  if ((isTargetMacOS() && !isMacosxVersionLT(10, 9)) ||
       (isTargetIOSBased() && !isIPhoneOSVersionLT(7, 0)) ||
       isTargetWatchOSBased())
     return ToolChain::CST_Libcxx;
@@ -808,12 +808,12 @@ ObjCRuntime Darwin::getDefaultObjCRuntime(bool isNonFragile) const {
 
 /// Darwin provides a blocks runtime starting in MacOS X 10.6 and iOS 3.2.
 bool Darwin::hasBlocksRuntime() const {
-  if (isTargetWatchOSBased())
+  if (isTargetWatchOSBased() || isTargetMacABI())
     return true;
   else if (isTargetIOSBased())
     return !isIPhoneOSVersionLT(3, 2);
   else {
-    assert(isTargetMacOSBased() && "unexpected darwin target");
+    assert(isTargetMacOS() && "unexpected darwin target");
     return !isMacosxVersionLT(10, 6);
   }
 }
@@ -937,7 +937,22 @@ Tool *MachO::getTool(Action::ActionClass AC) const {
   }
 }
 
-Tool *MachO::buildLinker() const { return new tools::darwin::Linker(*this); }
+Tool *MachO::buildLinker() const {
+  // Determine whether to use an @responsefile or the old -filelist mechanism.
+  bool UseAtFile = false;
+  unsigned Version[5] = {0, 0, 0, 0, 0};
+  if (Arg *A =
+          getArgs_DO_NOT_USE().getLastArg(options::OPT_mlinker_version_EQ)) {
+    // We don't need to diagnose a parse error here, it'll be caught in
+    // ConstructJob.
+    if (Driver::GetReleaseVersion(A->getValue(), Version)) {
+      if (Version[0] >= 607)
+        UseAtFile = true;
+    }
+  }
+
+  return new tools::darwin::Linker(*this, UseAtFile);
+}
 
 Tool *MachO::buildAssembler() const {
   return new tools::darwin::Assembler(*this);
@@ -1010,6 +1025,8 @@ void DarwinClang::AddLinkARCArgs(const ArgList &Args,
   // Avoid linking compatibility stubs on i386 mac.
   if (isTargetMacOSBased() && getArch() == llvm::Triple::x86)
     return;
+  if (isTargetAppleSiliconMac())
+    return;
 
   ObjCRuntime runtime = getDefaultObjCRuntime(/*nonfragile*/ true);
 
@@ -1061,7 +1078,7 @@ void DarwinClang::AddLinkARCArgs(const ArgList &Args,
 
 unsigned DarwinClang::GetDefaultDwarfVersion() const {
   // Default to use DWARF 2 on OS X 10.10 / iOS 8 and lower.
-  if ((isTargetMacOSBased() && isMacosxVersionLT(10, 11)) ||
+  if ((isTargetMacOS() && isMacosxVersionLT(10, 11)) ||
       (isTargetIOSBased() && isIPhoneOSVersionLT(9)))
     return 2;
   return 4;
@@ -1076,10 +1093,9 @@ void MachO::AddLinkRuntimeLib(const ArgList &Args, ArgStringList &CmdArgs,
     DarwinLibName += Component;
     if (!(Opts & RLO_IsEmbedded))
       DarwinLibName += "_";
-    DarwinLibName += getOSLibraryNameSuffix();
-  } else
-    DarwinLibName += getOSLibraryNameSuffix(true);
+  }
 
+  DarwinLibName += getOSLibraryNameSuffix();
   DarwinLibName += IsShared ? "_dynamic.dylib" : ".a";
   SmallString<128> Dir(getDriver().ResourceDir);
   llvm::sys::path::append(
@@ -1733,13 +1749,22 @@ inferDeploymentTargetFromArch(DerivedArgList &Args, const Darwin &Toolchain,
   llvm::Triple::OSType OSTy = llvm::Triple::UnknownOS;
 
   StringRef MachOArchName = Toolchain.getMachOArchName(Args);
-  if (MachOArchName == "armv7" || MachOArchName == "armv7s" ||
-      MachOArchName == "arm64" || MachOArchName == "arm64e") {
+  if (MachOArchName == "arm64" || MachOArchName == "arm64e") {
+#if __arm64__
+    // A clang running on an Apple Silicon mac defaults
+    // to building for mac when building for arm64 rather than
+    // defaulting to iOS.
+    if (Triple.getOS() == llvm::Triple::IOS)
+      OSTy = llvm::Triple::IOS;
     if (Triple.getOS() == llvm::Triple::TvOS)
       OSTy = llvm::Triple::TvOS;
     else
-      OSTy = llvm::Triple::IOS;
-  }
+      OSTy = llvm::Triple::MacOSX;
+#else
+    OSTy = llvm::Triple::IOS;
+#endif
+  } else if (MachOArchName == "armv7" || MachOArchName == "armv7s")
+    OSTy = llvm::Triple::IOS;
   else if (MachOArchName == "armv7k" || MachOArchName == "arm64_32")
     OSTy = llvm::Triple::WatchOS;
   else if (MachOArchName != "armv6m" && MachOArchName != "armv7m" &&
@@ -1889,7 +1914,7 @@ void Darwin::AddDeploymentTarget(DerivedArgList &Args) const {
   if (Platform == MacOS) {
     if (!Driver::GetReleaseVersion(OSTarget->getOSVersion(), Major, Minor,
                                    Micro, HadExtra) ||
-        HadExtra || Major != 10 || Minor >= 100 || Micro >= 100)
+        HadExtra || Major < 10 || Major >= 100 || Minor >= 100 || Micro >= 100)
       getDriver().Diag(diag::err_drv_invalid_version_number)
           << OSTarget->getAsString(Args, Opts);
   } else if (Platform == IPhoneOS) {
@@ -2674,6 +2699,9 @@ void Darwin::addMinVersionArgs(const ArgList &Args,
     CmdArgs.push_back("-macosx_version_min");
   }
 
+  VersionTuple MinTgtVers = getEffectiveTriple().getMinimumSupportedOSVersion();
+  if (!MinTgtVers.empty() && MinTgtVers > TargetVersion)
+    TargetVersion = MinTgtVers;
   CmdArgs.push_back(Args.MakeArgString(TargetVersion.getAsString()));
 }
 
@@ -2711,6 +2739,9 @@ void Darwin::addPlatformVersionArgs(const llvm::opt::ArgList &Args,
     if (Platform == Darwin::IPhoneOS && Environment == Darwin::MacABI &&
         TargetVersion.getMajor() < 13)
       TargetVersion = VersionTuple(13, 0);
+    VersionTuple MinTgtVers = getEffectiveTriple().getMinimumSupportedOSVersion();
+    if (!MinTgtVers.empty() && MinTgtVers > TargetVersion)
+      TargetVersion = MinTgtVers;
     CmdArgs.push_back(Args.MakeArgString(TargetVersion.getAsString()));
     if (SDKInfo) {
       VersionTuple SDKVersion = SDKInfo->getVersion().withoutBuild();
@@ -2733,98 +2764,102 @@ void Darwin::addPlatformVersionArgs(const llvm::opt::ArgList &Args,
                          TargetEnvironment);
 }
 
+// Add additional link args for the -dynamiclib option.
+static void addDynamicLibLinkArgs(const Darwin &D, const ArgList &Args,
+                                  ArgStringList &CmdArgs) {
+  // Derived from darwin_dylib1 spec.
+  if (D.isTargetIPhoneOS()) {
+    if (D.isIPhoneOSVersionLT(3, 1))
+      CmdArgs.push_back("-ldylib1.o");
+    return;
+  }
+
+  if (!D.isTargetMacOS())
+    return;
+  if (D.isMacosxVersionLT(10, 5))
+    CmdArgs.push_back("-ldylib1.o");
+  else if (D.isMacosxVersionLT(10, 6))
+    CmdArgs.push_back("-ldylib1.10.5.o");
+}
+
+// Add additional link args for the -bundle option.
+static void addBundleLinkArgs(const Darwin &D, const ArgList &Args,
+                              ArgStringList &CmdArgs) {
+  if (Args.hasArg(options::OPT_static))
+    return;
+  // Derived from darwin_bundle1 spec.
+  if ((D.isTargetIPhoneOS() && D.isIPhoneOSVersionLT(3, 1)) ||
+      (D.isTargetMacOS() && D.isMacosxVersionLT(10, 6)))
+    CmdArgs.push_back("-lbundle1.o");
+}
+
+// Add additional link args for the -pg option.
+static void addPgProfilingLinkArgs(const Darwin &D, const ArgList &Args,
+                                   ArgStringList &CmdArgs) {
+  if (D.isTargetMacOS() && D.isMacosxVersionLT(10, 9)) {
+    if (Args.hasArg(options::OPT_static) || Args.hasArg(options::OPT_object) ||
+        Args.hasArg(options::OPT_preload)) {
+      CmdArgs.push_back("-lgcrt0.o");
+    } else {
+      CmdArgs.push_back("-lgcrt1.o");
+
+      // darwin_crt2 spec is empty.
+    }
+    // By default on OS X 10.8 and later, we don't link with a crt1.o
+    // file and the linker knows to use _main as the entry point.  But,
+    // when compiling with -pg, we need to link with the gcrt1.o file,
+    // so pass the -no_new_main option to tell the linker to use the
+    // "start" symbol as the entry point.
+    if (!D.isMacosxVersionLT(10, 8))
+      CmdArgs.push_back("-no_new_main");
+  } else {
+    D.getDriver().Diag(diag::err_drv_clang_unsupported_opt_pg_darwin)
+        << D.isTargetMacOS();
+  }
+}
+
+static void addDefaultCRTLinkArgs(const Darwin &D, const ArgList &Args,
+                                  ArgStringList &CmdArgs) {
+  // Derived from darwin_crt1 spec.
+  if (D.isTargetIPhoneOS()) {
+    if (D.getArch() == llvm::Triple::aarch64)
+      ; // iOS does not need any crt1 files for arm64
+    else if (D.isIPhoneOSVersionLT(3, 1))
+      CmdArgs.push_back("-lcrt1.o");
+    else if (D.isIPhoneOSVersionLT(6, 0))
+      CmdArgs.push_back("-lcrt1.3.1.o");
+    return;
+  }
+
+  if (!D.isTargetMacOS())
+    return;
+  if (D.isMacosxVersionLT(10, 5))
+    CmdArgs.push_back("-lcrt1.o");
+  else if (D.isMacosxVersionLT(10, 6))
+    CmdArgs.push_back("-lcrt1.10.5.o");
+  else if (D.isMacosxVersionLT(10, 8))
+    CmdArgs.push_back("-lcrt1.10.6.o");
+  // darwin_crt2 spec is empty.
+}
+
 void Darwin::addStartObjectFileArgs(const ArgList &Args,
                                     ArgStringList &CmdArgs) const {
   // Derived from startfile spec.
-  if (Args.hasArg(options::OPT_dynamiclib)) {
-    // Derived from darwin_dylib1 spec.
-    if (isTargetWatchOSBased()) {
-      ; // watchOS does not need dylib1.o.
-    } else if (isTargetIOSSimulator()) {
-      ; // iOS simulator does not need dylib1.o.
-    } else if (isTargetIPhoneOS()) {
-      if (isIPhoneOSVersionLT(3, 1))
-        CmdArgs.push_back("-ldylib1.o");
-    } else {
-      if (isMacosxVersionLT(10, 5))
-        CmdArgs.push_back("-ldylib1.o");
-      else if (isMacosxVersionLT(10, 6))
-        CmdArgs.push_back("-ldylib1.10.5.o");
-    }
-  } else {
-    if (Args.hasArg(options::OPT_bundle)) {
-      if (!Args.hasArg(options::OPT_static)) {
-        // Derived from darwin_bundle1 spec.
-        if (isTargetWatchOSBased()) {
-          ; // watchOS does not need bundle1.o.
-        } else if (isTargetIOSSimulator()) {
-          ; // iOS simulator does not need bundle1.o.
-        } else if (isTargetIPhoneOS()) {
-          if (isIPhoneOSVersionLT(3, 1))
-            CmdArgs.push_back("-lbundle1.o");
-        } else {
-          if (isMacosxVersionLT(10, 6))
-            CmdArgs.push_back("-lbundle1.o");
-        }
-      }
-    } else {
-      if (Args.hasArg(options::OPT_pg) && SupportsProfiling()) {
-        if (isTargetMacOSBased() && isMacosxVersionLT(10, 9)) {
-          if (Args.hasArg(options::OPT_static) ||
-              Args.hasArg(options::OPT_object) ||
-              Args.hasArg(options::OPT_preload)) {
-            CmdArgs.push_back("-lgcrt0.o");
-          } else {
-            CmdArgs.push_back("-lgcrt1.o");
+  if (Args.hasArg(options::OPT_dynamiclib))
+    addDynamicLibLinkArgs(*this, Args, CmdArgs);
+  else if (Args.hasArg(options::OPT_bundle))
+    addBundleLinkArgs(*this, Args, CmdArgs);
+  else if (Args.hasArg(options::OPT_pg) && SupportsProfiling())
+    addPgProfilingLinkArgs(*this, Args, CmdArgs);
+  else if (Args.hasArg(options::OPT_static) ||
+           Args.hasArg(options::OPT_object) ||
+           Args.hasArg(options::OPT_preload))
+    CmdArgs.push_back("-lcrt0.o");
+  else
+    addDefaultCRTLinkArgs(*this, Args, CmdArgs);
 
-            // darwin_crt2 spec is empty.
-          }
-          // By default on OS X 10.8 and later, we don't link with a crt1.o
-          // file and the linker knows to use _main as the entry point.  But,
-          // when compiling with -pg, we need to link with the gcrt1.o file,
-          // so pass the -no_new_main option to tell the linker to use the
-          // "start" symbol as the entry point.
-          if (isTargetMacOSBased() && !isMacosxVersionLT(10, 8))
-            CmdArgs.push_back("-no_new_main");
-        } else {
-          getDriver().Diag(diag::err_drv_clang_unsupported_opt_pg_darwin)
-              << isTargetMacOSBased();
-        }
-      } else {
-        if (Args.hasArg(options::OPT_static) ||
-            Args.hasArg(options::OPT_object) ||
-            Args.hasArg(options::OPT_preload)) {
-          CmdArgs.push_back("-lcrt0.o");
-        } else {
-          // Derived from darwin_crt1 spec.
-          if (isTargetWatchOSBased()) {
-            ; // watchOS does not need crt1.o.
-          } else if (isTargetIOSSimulator()) {
-            ; // iOS simulator does not need crt1.o.
-          } else if (isTargetIPhoneOS()) {
-            if (getArch() == llvm::Triple::aarch64)
-              ; // iOS does not need any crt1 files for arm64
-            else if (isIPhoneOSVersionLT(3, 1))
-              CmdArgs.push_back("-lcrt1.o");
-            else if (isIPhoneOSVersionLT(6, 0))
-              CmdArgs.push_back("-lcrt1.3.1.o");
-          } else {
-            if (isMacosxVersionLT(10, 5))
-              CmdArgs.push_back("-lcrt1.o");
-            else if (isMacosxVersionLT(10, 6))
-              CmdArgs.push_back("-lcrt1.10.5.o");
-            else if (isMacosxVersionLT(10, 8))
-              CmdArgs.push_back("-lcrt1.10.6.o");
-
-            // darwin_crt2 spec is empty.
-          }
-        }
-      }
-    }
-  }
-
-  if (!isTargetIPhoneOS() && Args.hasArg(options::OPT_shared_libgcc) &&
-      !isTargetWatchOS() && isMacosxVersionLT(10, 5)) {
+  if (isTargetMacOS() && Args.hasArg(options::OPT_shared_libgcc) &&
+      isMacosxVersionLT(10, 5)) {
     const char *Str = Args.MakeArgString(GetFilePath("crt3.o"));
     CmdArgs.push_back(Str);
   }
@@ -2832,7 +2867,7 @@ void Darwin::addStartObjectFileArgs(const ArgList &Args,
 
 void Darwin::CheckObjCARC() const {
   if (isTargetIOSBased() || isTargetWatchOSBased() ||
-      (isTargetMacOSBased() && !isMacosxVersionLT(10, 6)))
+      (isTargetMacOS() && !isMacosxVersionLT(10, 6)))
     return;
   getDriver().Diag(diag::err_arc_unsupported_on_toolchain);
 }
@@ -2854,8 +2889,8 @@ SanitizerMask Darwin::getSupportedSanitizers() const {
   // Prior to 10.9, macOS shipped a version of the C++ standard library without
   // C++11 support. The same is true of iOS prior to version 5. These OS'es are
   // incompatible with -fsanitize=vptr.
-  if (!(isTargetMacOSBased() && isMacosxVersionLT(10, 9))
-      && !(isTargetIPhoneOS() && isIPhoneOSVersionLT(5, 0)))
+  if (!(isTargetMacOS() && isMacosxVersionLT(10, 9)) &&
+      !(isTargetIPhoneOS() && isIPhoneOSVersionLT(5, 0)))
     Res |= SanitizerKind::Vptr;
 
   if (IsX86_64 && (isTargetMacOSBased() || isTargetIOSSimulator() ||

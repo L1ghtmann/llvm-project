@@ -166,25 +166,46 @@ function(darwin_test_archs os valid_archs)
     CACHE STRING "List of valid architectures for platform ${os}." FORCE)
 endfunction()
 
-# This function checks the host cpusubtype to see if it is post-haswell. Haswell
-# and later machines can run x86_64h binaries. Haswell is cpusubtype 8.
+# This function checks the host cputype/cpusubtype to filter supported
+# architecture for the host OS. This is used to determine which tests are
+# available for the host.
 function(darwin_filter_host_archs input output)
   list_intersect(tmp_var DARWIN_osx_ARCHS ${input})
   execute_process(
-    COMMAND sysctl hw.cpusubtype
-    OUTPUT_VARIABLE SUBTYPE)
-
-  string(REGEX MATCH "hw.cpusubtype: ([0-9]*)"
-         SUBTYPE_MATCHED "${SUBTYPE}")
-  set(HASWELL_SUPPORTED Off)
-  if(SUBTYPE_MATCHED)
-    if(${CMAKE_MATCH_1} GREATER 7)
-      set(HASWELL_SUPPORTED On)
+    COMMAND sysctl hw.cputype
+    OUTPUT_VARIABLE CPUTYPE)
+  string(REGEX MATCH "hw.cputype: ([0-9]*)"
+         CPUTYPE_MATCHED "${CPUTYPE}")
+  set(ARM_HOST Off)
+  if(CPUTYPE_MATCHED)
+    # ARM cputype is (0x01000000 | 12) and X86(_64) is always 7.
+    if(${CMAKE_MATCH_1} GREATER 11)
+      set(ARM_HOST On)
     endif()
   endif()
-  if(NOT HASWELL_SUPPORTED)
-    list(REMOVE_ITEM tmp_var x86_64h)
+
+  if(ARM_HOST)
+    list(REMOVE_ITEM tmp_var i386)
+  else()
+    list(REMOVE_ITEM tmp_var arm64)
+    list(REMOVE_ITEM tmp_var arm64e)
+    execute_process(
+      COMMAND sysctl hw.cpusubtype
+      OUTPUT_VARIABLE SUBTYPE)
+    string(REGEX MATCH "hw.cpusubtype: ([0-9]*)"
+           SUBTYPE_MATCHED "${SUBTYPE}")
+
+    set(HASWELL_SUPPORTED Off)
+    if(SUBTYPE_MATCHED)
+      if(${CMAKE_MATCH_1} GREATER 7)
+        set(HASWELL_SUPPORTED On)
+      endif()
+    endif()
+    if(NOT HASWELL_SUPPORTED)
+      list(REMOVE_ITEM tmp_var x86_64h)
+    endif()
   endif()
+
   set(${output} ${tmp_var} PARENT_SCOPE)
 endfunction()
 
@@ -263,6 +284,15 @@ macro(darwin_add_builtin_library name suffix)
       string(REPLACE "-fomit-frame-pointer" "" cflag "${cflag}")
       list(APPEND builtin_cflags ${cflag})
     endforeach(cflag)
+  endif()
+
+  if ("${LIB_OS}" MATCHES ".*sim$")
+    # Pass an explicit -simulator environment to the -target option to ensure
+    # that we don't rely on the architecture to infer whether we're building
+    # for the simulator.
+    string(REGEX REPLACE "sim" "" base_os "${LIB_OS}")
+    list(APPEND builtin_cflags
+         -target "${LIB_ARCH}-apple-${base_os}${DARWIN_${LIBOS}_BUILTIN_MIN_VER}-simulator")
   endif()
 
   set_target_compile_flags(${libname}
@@ -391,15 +421,33 @@ macro(darwin_add_builtin_libraries)
     endif()
   endforeach()
 
-  # We put the x86 sim slices into the archives for their base OS
   foreach (os ${ARGN})
+    # We put the x86 sim slices into the archives for their base OS
+    # FIXME: Stop doing that in upstream Phab review (blocked by swift side
+    # support as well).
     if(NOT ${os} MATCHES ".*sim$")
+      set(sim_flags ${${os}sim_builtins_lipo_flags})
+      # Do not include the arm64 slice in the `lipo` invocation for the device
+      # libclang_rt.<os>.a . This ensures that `lipo` uses the device arm64
+      # slice in libclang_rt.<os>.a. The simulator arm64 slice is present only
+      # in libclang_rt.<os>sim.a .
+      if (NOT "${sim_flags}" STREQUAL "")
+        string(REGEX REPLACE ";-arch;arm64.*" "" sim_flags "${sim_flags}")
+        message(STATUS "adjusted simulator flags for non-sim builtin lib: ${sim_flags}")
+      endif()
       darwin_lipo_libs(clang_rt.${os}
                         PARENT_TARGET builtins
-                        LIPO_FLAGS ${${os}_builtins_lipo_flags} ${${os}sim_builtins_lipo_flags}
+                        LIPO_FLAGS ${${os}_builtins_lipo_flags} ${sim_flags}
                         DEPENDS ${${os}_builtins_libs} ${${os}sim_builtins_libs}
                         OUTPUT_DIR ${COMPILER_RT_LIBRARY_OUTPUT_DIR}
                         INSTALL_DIR ${COMPILER_RT_LIBRARY_INSTALL_DIR})
+    else()
+      darwin_lipo_libs(clang_rt.${os}
+                       PARENT_TARGET builtins
+                       LIPO_FLAGS ${${os}_builtins_lipo_flags}
+                       DEPENDS ${${os}_builtins_libs}
+                       OUTPUT_DIR ${COMPILER_RT_LIBRARY_OUTPUT_DIR}
+                       INSTALL_DIR ${COMPILER_RT_LIBRARY_INSTALL_DIR})
     endif()
   endforeach()
   darwin_add_embedded_builtin_libraries()
