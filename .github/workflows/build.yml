@@ -1,5 +1,6 @@
 # REFS:
 # https://github.com/ProcursusTeam/Procursus/tree/main/makefiles
+# https://github.com/kabiroberai/darwin-tools-linux/blob/master/prepare-toolchain
 name: Build
 
 on:
@@ -108,7 +109,9 @@ jobs:
             --with-libtapi="$HOME/cctools/" \
             --program-prefix="" \
             CC="$HOME/linux/iphone/bin/clang" \
-            CXX="$HOME/linux/iphone/bin/clang++"
+            CXX="$HOME/linux/iphone/bin/clang++" \
+            CXXABI_LIB="-l:libc++abi.a" \
+            LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-z,origin"
           make -j$(nproc --all) install
           cp -a $HOME/cctools/* $HOME/linux/iphone/
 
