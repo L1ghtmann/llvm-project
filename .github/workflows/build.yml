@@ -24,7 +24,7 @@ jobs:
             pkg-config \
             python3 \
             zlib1g-dev
-          mkdir -p $HOME/my-llvm-project $HOME/linux/iphone/
+          mkdir -p $HOME/linux/iphone/
 
       - name: Build LLVM/Clang
         run: |
@@ -38,7 +38,7 @@ jobs:
             -DLLVM_INCLUDE_TESTS=OFF \
             -DCLANG_INCLUDE_TESTS=OFF \
             -DCMAKE_BUILD_TYPE=MinSizeRel \
-            -DCMAKE_INSTALL_PREFIX="$HOME/my-llvm-project/" \
+            -DCMAKE_INSTALL_PREFIX="$HOME/linux/iphone/" \
             ../llvm
           make -j$(nproc --all) install
 
@@ -59,15 +59,15 @@ jobs:
       #       -DCOMPILER_RT_BUILD_BUILTINS=ON \
       #       -DBUILTINS_CMAKE_ARGS="-DCOMPILER_RT_ENABLE_IOS=ON -DCOMPILER_RT_ENABLE_WATCHOS=ON -DCOMPILER_RT_ENABLE_TVOS=ON" \
       #       -DCMAKE_BUILD_TYPE=MinSizeRel \
-      #       -DCMAKE_INSTALL_PREFIX="$HOME/my-llvm-project/" \
+      #       -DCMAKE_INSTALL_PREFIX="$HOME/linux/iphone/" \
       #       ../llvm
       #     make -j$(nproc --all) install-compiler-rt
-      #     mv $HOME/my-llvm-project/* $HOME/linux/iphone/
 
       - name: Build ldid
         run: |
           git clone https://github.com/ProcursusTeam/ldid
           cd ldid
+          sed -i 's/libplist-2.0/libplist/g' Makefile
           make -j$(nproc --all) DESTDIR="$HOME/linux/iphone/" PREFIX="" install
 
       - name: Build tapi
@@ -109,9 +109,7 @@ jobs:
             --with-libtapi="$HOME/cctools/" \
             --program-prefix="" \
             CC="$HOME/linux/iphone/bin/clang" \
-            CXX="$HOME/linux/iphone/bin/clang++" \
-            CXXABI_LIB="-l:libc++abi.a" \
-            LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-z,origin"
+            CXX="$HOME/linux/iphone/bin/clang++"
           make -j$(nproc --all) install
           cp -a $HOME/cctools/* $HOME/linux/iphone/
 
