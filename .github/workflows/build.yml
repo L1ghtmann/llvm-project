@@ -1,0 +1,124 @@
+# REFS:
+# https://github.com/ProcursusTeam/Procursus/tree/main/makefiles
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@main
+      - name: LLVM/Clang Prep
+        run: |
+          sudo apt install build-essential \
+            cmake \
+            coreutils \
+            git \
+            libplist-dev \
+            libssl-dev \
+            make \
+            pkg-config \
+            python3 \
+            zlib1g-dev
+          mkdir -p $HOME/my-llvm-project $HOME/linux/iphone/
+
+      - name: Build LLVM/Clang
+        run: |
+          mkdir build && cd build
+          cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS=clang \
+            -DLLVM_LINK_LLVM_DYLIB=ON \
+            -DLLVM_ENABLE_Z3_SOLVER=OFF \
+            -DLLVM_ENABLE_BINDINGS=OFF \
+            -DLLVM_ENABLE_WARNINGS=OFF \
+            -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+            -DLLVM_INCLUDE_TESTS=OFF \
+            -DCLANG_INCLUDE_TESTS=OFF \
+            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DCMAKE_INSTALL_PREFIX="$HOME/my-llvm-project/" \
+            ../llvm
+          make -j$(nproc --all) install
+
+      # - name: Build compiler-rt
+      #   run: |
+      #     mkdir build-compiler-rt && cd build-compiler-rt
+      #     cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS="clang" \
+      #       -DLLVM_ENABLE_RUNTIMES="compiler-rt" \
+      #       -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+      #       -DLLVM_INCLUDE_TESTS=OFF \
+      #       -DCLANG_INCLUDE_TESTS=OFF \
+      #       -DCOMPILER_RT_INCLUDE_TESTS=OFF \
+      #       -DCOMPILER_RT_BUILD_CRT=OFF \
+      #       -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+      #       -DCOMPILER_RT_BUILD_PROFILE=OFF \
+      #       -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+      #       -DCOMPILER_RT_BUILD_XRAY=OFF \
+      #       -DCOMPILER_RT_BUILD_BUILTINS=ON \
+      #       -DBUILTINS_CMAKE_ARGS="-DCOMPILER_RT_ENABLE_IOS=ON -DCOMPILER_RT_ENABLE_WATCHOS=ON -DCOMPILER_RT_ENABLE_TVOS=ON" \
+      #       -DCMAKE_BUILD_TYPE=MinSizeRel \
+      #       -DCMAKE_INSTALL_PREFIX="$HOME/my-llvm-project/" \
+      #       ../llvm
+      #     make -j$(nproc --all) install-compiler-rt
+      #     mv $HOME/my-llvm-project/* $HOME/linux/iphone/
+
+      - name: Build ldid
+        run: |
+          git clone https://github.com/ProcursusTeam/ldid
+          cd ldid
+          make -j$(nproc --all) DESTDIR="$HOME/linux/iphone/" PREFIX="" install
+
+      - name: Build tapi
+        run: |
+          git clone https://github.com/tpoechtrager/apple-libtapi
+          mkdir -p $HOME/cctools && cd apple-libtapi
+          mkdir build-tblgens && cd build-tblgens
+          cmake -G "Unix Makefiles" -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+            -DLLVM_INCLUDE_TESTS=OFF \
+            -DLLVM_ENABLE_WARNINGS=OFF \
+            -DCLANG_INCLUDE_TESTS=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            ../src/llvm
+          make -j$(nproc --all) llvm-tblgen clang-tblgen
+          cd ../
+
+          mkdir build-tapi && cd build-tapi
+          cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS="libtapi" \
+            -DLLVM_INCLUDE_TESTS=OFF \
+            -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+            -DLLVM_ENABLE_WARNINGS=OFF \
+            -DTAPI_FULL_VERSION="$(cat $PWD/../VERSION.txt | grep "tapi" | grep -o '[[:digit:]].*')" \
+            -DLLVM_TABLEGEN="$PWD/../build-tblgens/bin/llvm-tblgen" \
+            -DCLANG_TABLEGEN="$PWD/../build-tblgens/bin/clang-tblgen" \
+            -DCLANG_TABLEGEN_EXE="$PWD/../build-tblgens/bin/clang-tblgen" \
+            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DCMAKE_CXX_FLAGS="-I$PWD/../src/llvm/projects/clang/include/ -I$PWD/projects/clang/include/" \
+            -DCMAKE_INSTALL_PREFIX="$HOME/cctools/" \
+            ../src/llvm
+          make -j$(nproc --all) install-libtapi install-tapi-headers install-tapi
+
+      - name: Build cctools
+        run: |
+          git clone https://github.com/tpoechtrager/cctools-port
+          cd cctools-port/cctools
+          ./configure --prefix="$HOME/cctools/" \
+            --target=aarch64-apple-darwin14 \
+            --enable-tapi-support \
+            --with-libtapi="$HOME/cctools/" \
+            --program-prefix="" \
+            CC="$HOME/linux/iphone/bin/clang" \
+            CXX="$HOME/linux/iphone/bin/clang++"
+          make -j$(nproc --all) install
+          cp -a $HOME/cctools/* $HOME/linux/iphone/
+
+      - name: Prep artifact
+        run: |
+          cd $HOME
+          tar -cJvf iOSToolchain.tar.xz linux/iphone/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: iOSToolchain-Container
+          path: ~/iOSToolchain.tar.xz
