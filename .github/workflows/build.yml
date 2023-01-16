@@ -7,12 +7,27 @@ on:
   push:
   workflow_dispatch:
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Create release
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Draft Release
+        body: ''
+        draft: true
+
   build:
-    runs-on: ubuntu-20.04
+    needs: create_release
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@main
-      - name: LLVM/Clang Prep
+      - name: LLVM/Clang prep
         run: |
           sudo apt install build-essential \
             cmake \
@@ -67,11 +82,10 @@ jobs:
         run: |
           git clone https://github.com/ProcursusTeam/ldid
           cd ldid
-          sed -i 's/libplist-2.0/libplist/g' Makefile
           make -j$(nproc --all) DESTDIR="$HOME/linux/iphone/" \
             PREFIX="" \
-            LIBCRYPTO_LIBS="-lcrypto" \
-            LIBPLIST_LIBS="-lplist" \
+            LIBCRYPTO_LIBS="-l:crypto.a" \
+            LIBPLIST_LIBS="-lplist-2.0" \
             install
 
       - name: Build tapi
@@ -119,13 +133,12 @@ jobs:
           make -j$(nproc --all) install
           cp -a $HOME/cctools/* $HOME/linux/iphone/
 
-      - name: Prep artifact
+      - name: Prep build for release
         run: |
           cd $HOME
           tar -cJvf iOSToolchain.tar.xz linux/iphone/
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@main
-        with:
-          name: iOSToolchain-Container
-          path: ~/iOSToolchain.tar.xz
+      - name: Attach build to release
+        run: |
+          set -x
+          gh release upload ${GITHUB_REF##*/} ~/iOSToolchain.tar.xz
