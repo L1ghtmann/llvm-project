@@ -84,7 +84,7 @@ jobs:
           cd ldid
           make -j$(nproc --all) DESTDIR="$HOME/linux/iphone/" \
             PREFIX="" \
-            LIBCRYPTO_LIBS="-l:crypto.a" \
+            LIBCRYPTO_LIBS="-lcrypto" \
             LIBPLIST_LIBS="-lplist-2.0" \
             install
 
