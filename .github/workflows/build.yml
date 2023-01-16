@@ -71,7 +71,7 @@ jobs:
           make -j$(nproc --all) DESTDIR="$HOME/linux/iphone/" \
             PREFIX="" \
             LIBCRYPTO_LIBS="-lcrypto" \
-            LIBPLIST_LIBS="-lplist-2.0" \
+            LIBPLIST_LIBS="-lplist" \
             install
 
       - name: Build tapi
