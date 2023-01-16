@@ -68,7 +68,11 @@ jobs:
           git clone https://github.com/ProcursusTeam/ldid
           cd ldid
           sed -i 's/libplist-2.0/libplist/g' Makefile
-          make -j$(nproc --all) DESTDIR="$HOME/linux/iphone/" PREFIX="" install
+          make -j$(nproc --all) DESTDIR="$HOME/linux/iphone/" \
+            PREFIX="" \
+            LIBCRYPTO_LIBS="-lcrypto" \
+            LIBPLIST_LIBS="-lplist-2.0" \
+            install
 
       - name: Build tapi
         run: |
