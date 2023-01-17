@@ -26,15 +26,13 @@ jobs:
             libtool \
             make \
             pkg-config \
-            python3 \
-            zlib1g-dev
+            python3
           mkdir -p $HOME/linux/iphone/ $HOME/libplist
 
       - name: Build LLVM/Clang
         run: |
           mkdir build && cd build
           cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS=clang \
-            -DLLVM_ENABLE_PIC=OFF \
             -DLLVM_BUILD_STATIC=ON \
             -DLLVM_LINK_LLVM_DYLIB=ON \
             -DLLVM_ENABLE_LIBXML2=OFF \
@@ -71,16 +69,16 @@ jobs:
       #       ../llvm
       #     make -j$(nproc --all) install-compiler-rt
 
-      - name: Build latest libplist
+      - name: Build libplist
         run: |
-          git clone https://github.com/libimobiledevice/libplist
+          git clone --depth=1 https://github.com/libimobiledevice/libplist
           cd libplist
           ./autogen.sh --prefix="$HOME/libplist" --without-cython
           make -j$(nproc --all) install
 
       - name: Build ldid
         run: |
-          git clone https://github.com/ProcursusTeam/ldid
+          git clone --depth=1 https://github.com/ProcursusTeam/ldid
           cd ldid
           make -j$(nproc --all) DESTDIR="$HOME/linux/iphone/" \
             PREFIX="" \
@@ -91,7 +89,7 @@ jobs:
 
       - name: Build tapi
         run: |
-          git clone https://github.com/tpoechtrager/apple-libtapi
+          git clone --depth=1 https://github.com/tpoechtrager/apple-libtapi
           mkdir -p $HOME/cctools && cd apple-libtapi
           mkdir build-tblgens && cd build-tblgens
           cmake -G "Unix Makefiles" -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
@@ -120,7 +118,7 @@ jobs:
 
       - name: Build cctools
         run: |
-          git clone https://github.com/tpoechtrager/cctools-port
+          git clone --depth=1 https://github.com/tpoechtrager/cctools-port
           cd cctools-port/cctools
           ./configure --prefix="$HOME/cctools/" \
             --target=aarch64-apple-darwin14 \
@@ -144,7 +142,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -x
-          du -sh ~/iOSToolchain.tar.xz
           TAG="${GITHUB_REF##*/}-${GITHUB_SHA:0:7}"
           gh release create "$TAG" --draft --title "Draft Release"
           gh release upload "$TAG" ~/iOSToolchain.tar.xz
