@@ -1,6 +1,7 @@
 # REFS:
 # https://github.com/ProcursusTeam/Procursus/tree/main/makefiles
 # https://github.com/kabiroberai/darwin-tools-linux/blob/master/prepare-toolchain
+# https://github.com/ClangBuiltLinux/tc-build/issues/150
 name: Build
 
 on:
@@ -37,6 +38,7 @@ jobs:
             -DLLVM_BUILD_STATIC=ON \
             -DLLVM_LINK_LLVM_DYLIB=ON \
             -DLLVM_ENABLE_LIBXML2=OFF \
+            -DLLVM_ENABLE_ZLIB=OFF \
             -DLLVM_ENABLE_Z3_SOLVER=OFF \
             -DLLVM_ENABLE_BINDINGS=OFF \
             -DLLVM_ENABLE_WARNINGS=OFF \
