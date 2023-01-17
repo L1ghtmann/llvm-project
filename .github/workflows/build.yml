@@ -42,6 +42,7 @@ jobs:
             -DLLVM_ENABLE_WARNINGS=OFF \
             -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
             -DLLVM_INCLUDE_TESTS=OFF \
+            -DLIBCLANG_BUILD_STATIC=ON \
             -DCLANG_INCLUDE_TESTS=OFF \
             -DCMAKE_BUILD_TYPE=MinSizeRel \
             -DCMAKE_INSTALL_PREFIX="$HOME/linux/iphone/" \
