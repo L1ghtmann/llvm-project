@@ -15,22 +15,28 @@ jobs:
       - name: LLVM/Clang prep
         run: |
           sudo apt install build-essential \
+            autoconf \
+            automake \
             cmake \
             coreutils \
             git \
             libplist-dev \
             libssl-dev \
+            libtool \
             make \
             pkg-config \
             python3 \
             zlib1g-dev
-          mkdir -p $HOME/linux/iphone/
+          mkdir -p $HOME/linux/iphone/ $HOME/libplist
 
       - name: Build LLVM/Clang
         run: |
           mkdir build && cd build
           cmake -G "Unix Makefiles" -DLLVM_ENABLE_PROJECTS=clang \
+            -DLLVM_ENABLE_PIC=OFF \
+            -DLLVM_BUILD_STATIC=ON \
             -DLLVM_LINK_LLVM_DYLIB=ON \
+            -DLLVM_ENABLE_LIBXML2=OFF \
             -DLLVM_ENABLE_Z3_SOLVER=OFF \
             -DLLVM_ENABLE_BINDINGS=OFF \
             -DLLVM_ENABLE_WARNINGS=OFF \
@@ -63,14 +69,22 @@ jobs:
       #       ../llvm
       #     make -j$(nproc --all) install-compiler-rt
 
+      - name: Build latest libplist
+        run: |
+          git clone https://github.com/libimobiledevice/libplist
+          cd libplist
+          ./autogen.sh --prefix="$HOME/libplist" --without-cython
+          make -j$(nproc --all) install
+
       - name: Build ldid
         run: |
           git clone https://github.com/ProcursusTeam/ldid
           cd ldid
           make -j$(nproc --all) DESTDIR="$HOME/linux/iphone/" \
             PREFIX="" \
-            LIBCRYPTO_LIBS="-lcrypto" \
-            LIBPLIST_LIBS="-lplist-2.0" \
+            LIBCRYPTO_LIBS="-l:libcrypto.a" \
+            LIBPLIST_INCLUDES="-I$HOME/libplist/include" \
+            LIBPLIST_LIBS="$HOME/libplist/lib/libplist-2.0.a" \
             install
 
       - name: Build tapi
@@ -129,6 +143,6 @@ jobs:
         run: |
           set -x
           du -sh ~/iOSToolchain.tar.xz
-          TAG="${GITHUB_REF##*/}-$GITHUB_SHA"
+          TAG="${GITHUB_REF##*/}-${GITHUB_SHA:0:7}"
           gh release create "$TAG" --draft --title "Draft Release"
           gh release upload "$TAG" ~/iOSToolchain.tar.xz
