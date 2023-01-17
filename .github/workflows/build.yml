@@ -7,23 +7,8 @@ on:
   push:
   workflow_dispatch:
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 jobs:
-  create_release:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Create release
-      uses: actions/create-release@v1
-      with:
-        tag_name: ${{ github.ref_name }}-${{ github.sha }}
-        release_name: Draft Release
-        body: ''
-        draft: true
-
   build:
-    needs: create_release
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@main
@@ -139,6 +124,11 @@ jobs:
           tar -cJvf iOSToolchain.tar.xz linux/iphone/
 
       - name: Attach build to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -x
-          gh release upload ${GITHUB_REF##*/}-$GITHUB_SHA ~/iOSToolchain.tar.xz
+          du -sh ~/iOSToolchain.tar.xz
+          TAG="${GITHUB_REF##*/}-$GITHUB_SHA"
+          gh release create "$TAG" --draft --title "Draft Release"
+          gh release upload "$TAG" ~/iOSToolchain.tar.xz
