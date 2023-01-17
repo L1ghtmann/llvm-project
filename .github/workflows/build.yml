@@ -17,7 +17,7 @@ jobs:
     - name: Create release
       uses: actions/create-release@v1
       with:
-        tag_name: ${{ github.ref_name }}
+        tag_name: ${{ github.ref_name }}-${{ github.sha }}
         release_name: Draft Release
         body: ''
         draft: true
@@ -141,4 +141,4 @@ jobs:
       - name: Attach build to release
         run: |
           set -x
-          gh release upload ${GITHUB_REF##*/} ~/iOSToolchain.tar.xz
+          gh release upload ${GITHUB_REF##*/}-$GITHUB_SHA ~/iOSToolchain.tar.xz
