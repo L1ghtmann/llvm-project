@@ -2,6 +2,7 @@
 # https://github.com/ProcursusTeam/Procursus/tree/main/makefiles
 # https://github.com/kabiroberai/darwin-tools-linux/blob/master/prepare-toolchain
 # https://github.com/ClangBuiltLinux/tc-build/issues/150
+# https://github.com/llvm/llvm-project/issues/45959
 name: Build
 
 on:
@@ -70,7 +71,7 @@ jobs:
       #       ../llvm
       #     make -j$(nproc --all) install-compiler-rt
 
-      - name: Build libplist
+      - name: Build libplist # doing this to get the static archive
         run: |
           git clone --depth=1 https://github.com/libimobiledevice/libplist
           cd libplist
