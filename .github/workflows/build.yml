@@ -24,11 +24,16 @@ jobs:
             cmake \
             coreutils \
             git \
+            gcc-8 \
+            g++-8 \
             libssl-dev \
             libtool \
             make \
             pkg-config \
             python3
+          # https://github.com/macports/macports-ports/blob/01ec793c58620cfa359558fd6af848e4176ae0fe/devel/libtapi/Portfile#L57
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+          sudo update-alternatives --config gcc
           mkdir -p $HOME/linux/iphone/ $HOME/libplist
 
       - name: Build LLVM/Clang
