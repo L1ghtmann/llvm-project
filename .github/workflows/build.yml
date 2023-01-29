@@ -13,7 +13,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@main
       - name: LLVM/Clang prep
@@ -24,7 +24,6 @@ jobs:
             cmake \
             coreutils \
             git \
-            libplist-dev \
             libssl-dev \
             libtool \
             make \
@@ -84,7 +83,7 @@ jobs:
           cd ldid
           make -j$(nproc --all) DESTDIR="$HOME/linux/iphone/" \
             PREFIX="" \
-            LIBCRYPTO_LIBS="-l:libcrypto.a" \
+            LIBCRYPTO_LIBS="-l:libcrypto.a -lpthread -ldl" \
             LIBPLIST_INCLUDES="-I$HOME/libplist/include" \
             LIBPLIST_LIBS="$HOME/libplist/lib/libplist-2.0.a" \
             install
