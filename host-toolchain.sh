@@ -135,7 +135,7 @@ cmake --build build --target install-libtapi install-tapi-headers install-tapi -
 	|| (echo "[!] (lib)tapi build failure"; exit 1)
 
 echo "[!] Build cctools"
-git clone https://github.com/tpoechtrager/cctools-port -b 986-ld64-711
+git clone https://github.com/tpoechtrager/cctools-port
 cd cctools-port/cctools/
 ./configure --prefix="$WDIR/linux/iphone/" \
 	--target=aarch64-apple-darwin14 \
