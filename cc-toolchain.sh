@@ -92,7 +92,7 @@ cmake -B build -G "Ninja" \
 	-DLLVM_TARGET_ARCH=$1 \
 	-DLLVM_DEFAULT_TARGET_TRIPLE=$1-linux-gnu \
 	-DLLVM_ENABLE_PROJECTS="clang" \
-	-DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi" \
+	-DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
 	-DLLVM_LINK_LLVM_DYLIB=ON \
 	-DLLVM_ENABLE_LIBXML2=OFF \
 	-DLLVM_ENABLE_ZLIB=OFF \

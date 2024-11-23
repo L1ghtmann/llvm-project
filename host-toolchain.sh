@@ -46,7 +46,7 @@ mkdir -pv $WDIR/{linux/iphone/,libplist/}
 echo "[!] Build LLVM/Clang"
 cmake -B build -G "Ninja" \
    -DLLVM_ENABLE_PROJECTS="clang" \
-   -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi" \
+   -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
    -DLLVM_LINK_LLVM_DYLIB=ON \
    -DLLVM_ENABLE_LIBXML2=OFF \
    -DLLVM_ENABLE_ZLIB=OFF \
