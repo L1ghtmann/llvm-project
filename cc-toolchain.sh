@@ -88,11 +88,12 @@ cmake --build build-host --target llvm-tblgen clang-tblgen clang -- -j$PROC \
 
 # cross-compile llvm/clang for target plat with support for useful targets
 cmake -B build -G "Ninja" \
-	-DCMAKE_CROSSCOMPILING=True \
+	-DCMAKE_SYSTEM_NAME="Linux" \
+	-DCMAKE_SYSTEM_VERSION="12" \
 	-DLLVM_TARGET_ARCH=$1 \
 	-DLLVM_DEFAULT_TARGET_TRIPLE=$1-linux-gnu \
 	-DLLVM_ENABLE_PROJECTS="clang" \
-	-DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi" \
+	-DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
 	-DLLVM_LINK_LLVM_DYLIB=ON \
 	-DLLVM_ENABLE_LIBXML2=OFF \
 	-DLLVM_ENABLE_ZLIB=OFF \
@@ -114,27 +115,28 @@ cmake --build build --target install -- -j$PROC \
 # echo "[!] Build compiler-rt"
 # cross-compile compiler-rt for target plat with support for useful targets
 # cmake -B build-compiler-rt -G "Ninja" \
-#     -DCMAKE_CROSSCOMPILING=True \
-#     -DLLVM_TARGET_ARCH=$1 \
-#     -DLLVM_DEFAULT_TARGET_TRIPLE=$1-linux-gnu \
-#     -DLLVM_ENABLE_PROJECTS="clang" \
-#     -DLLVM_ENABLE_RUNTIMES="compiler-rt" \
-#     -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
-#     -DLLVM_TABLEGEN="$PWD/build-host/bin/llvm-tblgen" \
-#     -DCLANG_TABLEGEN="$PWD/build-host/bin/clang-tblgen" \
-#     -DLLVM_INCLUDE_TESTS=OFF \
-#     -DCLANG_INCLUDE_TESTS=OFF \
-#     -DCOMPILER_RT_INCLUDE_TESTS=OFF \
-#     -DCOMPILER_RT_BUILD_CRT=OFF \
-#     -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
-#     -DCOMPILER_RT_BUILD_PROFILE=OFF \
-#     -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
-#     -DCOMPILER_RT_BUILD_XRAY=OFF \
-#     -DCOMPILER_RT_BUILD_BUILTINS=ON \
-#     -DBUILTINS_CMAKE_ARGS="-DCOMPILER_RT_ENABLE_IOS=ON -DCOMPILER_RT_ENABLE_WATCHOS=ON -DCOMPILER_RT_ENABLE_TVOS=ON" \
-#     -DCMAKE_BUILD_TYPE=MinSizeRel \
-#     -DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
-#     -S llvm
+# 	-DCMAKE_SYSTEM_NAME="Linux" \
+# 	-DCMAKE_SYSTEM_VERSION="12" \
+# 	-DLLVM_TARGET_ARCH=$1 \
+# 	-DLLVM_DEFAULT_TARGET_TRIPLE=$1-linux-gnu \
+# 	-DLLVM_ENABLE_PROJECTS="clang" \
+# 	-DLLVM_ENABLE_RUNTIMES="compiler-rt" \
+# 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+# 	-DLLVM_TABLEGEN="$PWD/build-host/bin/llvm-tblgen" \
+# 	-DCLANG_TABLEGEN="$PWD/build-host/bin/clang-tblgen" \
+# 	-DLLVM_INCLUDE_TESTS=OFF \
+# 	-DCLANG_INCLUDE_TESTS=OFF \
+# 	-DCOMPILER_RT_INCLUDE_TESTS=OFF \
+# 	-DCOMPILER_RT_BUILD_CRT=OFF \
+# 	-DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+# 	-DCOMPILER_RT_BUILD_PROFILE=OFF \
+# 	-DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+# 	-DCOMPILER_RT_BUILD_XRAY=OFF \
+# 	-DCOMPILER_RT_BUILD_BUILTINS=ON \
+# 	-DBUILTINS_CMAKE_ARGS="-DCOMPILER_RT_ENABLE_IOS=ON -DCOMPILER_RT_ENABLE_WATCHOS=ON -DCOMPILER_RT_ENABLE_TVOS=ON" \
+# 	-DCMAKE_BUILD_TYPE=MinSizeRel \
+# 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
+# 	-S llvm
 # cmake --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
 #    || (echo "[!] compiler-rt build failure"; exit 1)
 
@@ -178,7 +180,8 @@ cmake --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
 
 # build tapi for target arch with support for useful targets
 cmake -B build -G "Ninja" \
-	-DCMAKE_CROSSCOMPILING=True \
+	-DCMAKE_SYSTEM_NAME="Linux" \
+	-DCMAKE_SYSTEM_VERSION="12" \
 	-DLLVM_TARGET_ARCH=$1 \
 	-DLLVM_DEFAULT_TARGET_TRIPLE=$1-linux-gnu \
 	-DLLVM_ENABLE_PROJECTS="libtapi" \
