@@ -211,7 +211,7 @@ git clone --depth=1 https://github.com/tpoechtrager/cctools-port/ -b 986-ld64-71
 	CC="$HOME/cc.sh" \
 	CXX="$HOME/cc.sh" \
 	CXXABI_LIB="-l:libc++abi.a" \
-	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-z,origin" \
+	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib'" \
 		|| (echo "[!] cctools-port configure failure"; cat config.log; exit 1)
 make -j$PROC install \
 	|| (echo "[!] cctools-port build failure"; exit 1)
