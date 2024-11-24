@@ -43,6 +43,9 @@ WDIR="$HOME/work"
 
 mkdir -pv $WDIR/{linux/iphone/,libplist/}
 
+# preemptively tell cmake to chill
+export CMAKE_WARN_DEV=0
+
 echo "[!] Build LLVM/Clang"
 cmake -B build -G "Ninja" \
    -DLLVM_ENABLE_PROJECTS="clang" \

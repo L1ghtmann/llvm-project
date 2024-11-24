@@ -71,6 +71,9 @@ WDIR="$HOME/work"
 
 mkdir -pv $WDIR/{linux/iphone/,libplist/}
 
+# preemptively tell cmake to chill
+export CMAKE_WARN_DEV=0
+
 echo "[!] Prep build for release"
 # build clang & llvm/clang-tblgen for host with support for target
 cmake -B build-host -G "Ninja" \
