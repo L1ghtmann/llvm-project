@@ -43,6 +43,9 @@ WDIR="$HOME/work"
 
 mkdir -pv $WDIR/{linux/iphone/,libplist/}
 
+# preemptively tell cmake to chill
+export CMAKE_WARN_DEV=0
+
 echo "[!] Build LLVM/Clang"
 cmake -B build -G "Ninja" \
    -DLLVM_ENABLE_PROJECTS="clang" \
@@ -145,7 +148,7 @@ cd cctools-port/cctools/
 	CC="$WDIR/linux/iphone/bin/clang" \
 	CXX="$WDIR/linux/iphone/bin/clang++" \
 	CXXABI_LIB="-l:libc++abi.a" \
-	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-z,origin" \
+	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib'" \
 		|| (echo "[!] cctools-port configure failure"; cat config.log; exit 1)
 make -j$PROC install \
 	|| (echo "[!] cctools-port build failure"; exit 1)

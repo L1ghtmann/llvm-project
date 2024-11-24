@@ -71,6 +71,9 @@ WDIR="$HOME/work"
 
 mkdir -pv $WDIR/{linux/iphone/,libplist/}
 
+# preemptively tell cmake to chill
+export CMAKE_WARN_DEV=0
+
 echo "[!] Prep build for release"
 # build clang & llvm/clang-tblgen for host with support for target
 cmake -B build-host -G "Ninja" \
@@ -100,6 +103,7 @@ cmake -B build -G "Ninja" \
 	-DLLVM_ENABLE_Z3_SOLVER=OFF \
 	-DLLVM_ENABLE_BINDINGS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
+	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin/" \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
 	-DLLVM_TABLEGEN="$PWD/build-host/bin/llvm-tblgen" \
 	-DCLANG_TABLEGEN="$PWD/build-host/bin/clang-tblgen" \
@@ -122,6 +126,7 @@ cmake --build build --target install -- -j$PROC \
 # 	-DLLVM_ENABLE_PROJECTS="clang" \
 # 	-DLLVM_ENABLE_RUNTIMES="compiler-rt" \
 # 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+#	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin/" \
 # 	-DLLVM_TABLEGEN="$PWD/build-host/bin/llvm-tblgen" \
 # 	-DCLANG_TABLEGEN="$PWD/build-host/bin/clang-tblgen" \
 # 	-DLLVM_INCLUDE_TESTS=OFF \
@@ -189,6 +194,7 @@ cmake -B build -G "Ninja" \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DTAPI_FULL_VERSION="$(cat $PWD/VERSION.txt | grep "tapi" | grep -o '[[:digit:]].*')" \
+	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-tblgens/bin/" \
 	-DLLVM_TABLEGEN="$PWD/build-tblgens/bin/llvm-tblgen" \
 	-DCLANG_TABLEGEN="$PWD/build-tblgens/bin/clang-tblgen" \
 	-DCLANG_TABLEGEN_EXE="$PWD/build-tblgens/bin/clang-tblgen" \
@@ -211,7 +217,7 @@ git clone --depth=1 https://github.com/tpoechtrager/cctools-port/
 	CC="$HOME/cc.sh" \
 	CXX="$HOME/cc.sh" \
 	CXXABI_LIB="-l:libc++abi.a" \
-	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-z,origin" \
+	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib'" \
 		|| (echo "[!] cctools-port configure failure"; cat config.log; exit 1)
 make -j$PROC install \
 	|| (echo "[!] cctools-port build failure"; exit 1)
