@@ -111,7 +111,6 @@ cmake -B build -G "Ninja" \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin/" \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
-	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
@@ -131,7 +130,6 @@ cmake --build build --target install -- -j$PROC \
 # 	-DLLVM_ENABLE_PROJECTS="clang" \
 # 	-DLLVM_ENABLE_RUNTIMES="compiler-rt" \
 # 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
-#	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin/" \
 #	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin" \
 # 	-DLLVM_INCLUDE_TESTS=OFF \
 # 	-DCLANG_INCLUDE_TESTS=OFF \
@@ -199,9 +197,6 @@ cmake -B build -G "Ninja" \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DTAPI_FULL_VERSION="$(cat $PWD/VERSION.txt | grep "tapi" | grep -o '[[:digit:]].*')" \
 	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-tblgens/bin/" \
-	-DLLVM_TABLEGEN="$PWD/build-tblgens/bin/llvm-tblgen" \
-	-DCLANG_TABLEGEN="$PWD/build-tblgens/bin/clang-tblgen" \
-	-DCLANG_TABLEGEN_EXE="$PWD/build-tblgens/bin/clang-tblgen" \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
 	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
