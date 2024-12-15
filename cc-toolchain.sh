@@ -25,16 +25,16 @@ if ! dpkg -l tzdata > /dev/null; then
 fi
 
 sudo apt update || true
+# this is very silly, but cctools-port
+# treats the llvm-build ld as GNU
+# and attempts to pass '-z', which
+# apple's ld64 doesn't support
+# so need GNU ld + clang for that
 sudo apt install -y build-essential \
 	autoconf \
 	automake \
 	cmake \
 	coreutils \
-	# this is very silly, but cctools-port
-	# treats the llvm-build ld as GNU
-	# and attempts to pass '-z', which
-	# apple's ld64 doesn't support
-	# so need GNU ld + clang for that
 	clang \
 	git \
 	libssl-dev \
