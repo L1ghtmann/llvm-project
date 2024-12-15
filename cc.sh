@@ -2,6 +2,19 @@
 # need a bit of special configuration for cross-compiling cctools-port ...
 # https://github.com/tpoechtrager/cctools-port/pull/137#issuecomment-1710484561
 
+# Accept '--cc-localbin' flag
+while [[ $# -gt 0 ]]; do
+  case $1 in
+	--cc-localbin)
+		localbin="yup"
+		shift
+		;;
+	*)
+		break
+		;;
+  esac
+done
+
 # modify as desired
 TARGET_ARCH="aarch64-linux-gnu"
 
@@ -10,8 +23,13 @@ GCC_VERSION=$(gcc -dumpversion)
 SYSROOT_PATH="$(which gcc)/../$TARGET_ARCH"
 
 WDIR="$HOME/work"
-CC="$WDIR/llvm-project/llvm-project/build-host/bin/clang"
-CXX="$WDIR/llvm-project/llvm-project/build-host/bin/clang++"
+if [[ -z $localbin ]]; then
+	CC="$WDIR/llvm-project/llvm-project/build-host/bin/clang"
+	CXX="$WDIR/llvm-project/llvm-project/build-host/bin/clang++"
+else
+	CC="clang"
+	CXX="clang++"
+fi
 
 FLAGS="-Qunused-arguments"
 FLAGS+=" --target=$TARGET_ARCH"

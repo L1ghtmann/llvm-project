@@ -30,6 +30,12 @@ sudo apt install -y build-essential \
 	automake \
 	cmake \
 	coreutils \
+	# this is very silly, but cctools-port
+	# treats the llvm-build ld as GNU
+	# and attempts to pass '-z', which
+	# apple's ld64 doesn't support
+	# so need GNU ld + clang for that
+	clang \
 	git \
 	libssl-dev \
 	libtool \
@@ -86,7 +92,7 @@ cmake -B build-host -G "Ninja" \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=Release \
 	-S llvm
-cmake --build build-host --target llvm-tblgen clang-tblgen clang -- -j$PROC \
+cmake --build build-host --target llvm-config llvm-tblgen clang-tblgen clang -- -j$PROC \
 	|| (echo "[!] host LLVM build failure"; exit 1)
 
 # cross-compile llvm/clang for target plat with support for useful targets
@@ -105,8 +111,7 @@ cmake -B build -G "Ninja" \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin/" \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
-	-DLLVM_TABLEGEN="$PWD/build-host/bin/llvm-tblgen" \
-	-DCLANG_TABLEGEN="$PWD/build-host/bin/clang-tblgen" \
+	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
@@ -127,8 +132,7 @@ cmake --build build --target install -- -j$PROC \
 # 	-DLLVM_ENABLE_RUNTIMES="compiler-rt" \
 # 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
 #	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin/" \
-# 	-DLLVM_TABLEGEN="$PWD/build-host/bin/llvm-tblgen" \
-# 	-DCLANG_TABLEGEN="$PWD/build-host/bin/clang-tblgen" \
+#	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin" \
 # 	-DLLVM_INCLUDE_TESTS=OFF \
 # 	-DCLANG_INCLUDE_TESTS=OFF \
 # 	-DCOMPILER_RT_INCLUDE_TESTS=OFF \
@@ -214,10 +218,10 @@ git clone --depth=1 https://github.com/tpoechtrager/cctools-port/ -b 986-ld64-71
 	--enable-tapi-support \
 	--with-libtapi="$WDIR/linux/iphone/" \
 	--program-prefix="" \
-	CC="$HOME/cc.sh" \
-	CXX="$HOME/cc.sh" \
+	CC="$HOME/cc.sh --cc-localbin" \
+	CXX="$HOME/cc.sh --cc-localbin" \
 	CXXABI_LIB="-l:libc++abi.a" \
-	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib'" \
+	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-rpath,'\$\$ORIGIN/../lib64' -Wl,-z,origin" \
 		|| (echo "[!] cctools-port configure failure"; cat config.log; exit 1)
 make -j$PROC install \
 	|| (echo "[!] cctools-port build failure"; exit 1)

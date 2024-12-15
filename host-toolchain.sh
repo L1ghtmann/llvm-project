@@ -30,6 +30,12 @@ sudo apt install -y build-essential \
 	automake \
 	cmake \
 	coreutils \
+	# this is very silly, but cctools-port
+	# treats the llvm-build ld as GNU
+	# and attempts to pass '-z', which
+	# apple's ld64 doesn't support
+	# so need GNU ld + clang for that
+	clang \
 	git \
 	libssl-dev \
 	libtool \
@@ -148,7 +154,7 @@ cd cctools-port/cctools/
 	CC="$WDIR/linux/iphone/bin/clang" \
 	CXX="$WDIR/linux/iphone/bin/clang++" \
 	CXXABI_LIB="-l:libc++abi.a" \
-	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib'" \
+	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-rpath,'\$\$ORIGIN/../lib64' -Wl,-z,origin" \
 		|| (echo "[!] cctools-port configure failure"; cat config.log; exit 1)
 make -j$PROC install \
 	|| (echo "[!] cctools-port build failure"; exit 1)
