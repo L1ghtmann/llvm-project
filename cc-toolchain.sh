@@ -93,7 +93,7 @@ cmake -B build-host -G "Ninja" \
 	-DCMAKE_BUILD_TYPE=Release \
 	-S llvm
 cmake --build build-host --target llvm-config llvm-tblgen clang-tblgen clang -- -j$PROC \
-	|| (echo "[!] host LLVM build failure"; exit 1)
+	|| { echo "[!] host LLVM build failure"; exit 1; }
 
 # cross-compile llvm/clang for target plat with support for useful targets
 cmake -B build -G "Ninja" \
@@ -117,7 +117,7 @@ cmake -B build -G "Ninja" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S llvm
 cmake --build build --target install -- -j$PROC \
-	|| (echo "[!] LLVM build failure"; exit 1)
+	|| { echo "[!] LLVM build failure"; exit 1; }
 
 # TODO
 # echo "[!] Build compiler-rt"
@@ -145,7 +145,7 @@ cmake --build build --target install -- -j$PROC \
 # 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 # 	-S llvm
 # cmake --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
-#    || (echo "[!] compiler-rt build failure"; exit 1)
+#    || { echo "[!] compiler-rt build failure"; exit 1; }
 
 cd $WDIR
 echo "[!] Build libplist"
@@ -155,7 +155,7 @@ cd lp
 ./autogen.sh --prefix="$WDIR/libplist" --without-cython --enable-static --disable-shared --host=$1-linux-gnu
 make -j$PROC install \
 	&& cp -av $WDIR/libplist/bin/plistutil $WDIR/linux/iphone/bin/; cd ../ \
-	|| (echo "[!] libplist build failure"; exit 1)
+	|| { echo "[!] libplist build failure"; exit 1; }
 
 echo "[!] Build ldid"
 git clone --depth=1 https://github.com/ProcursusTeam/ldid
@@ -167,7 +167,7 @@ make -j$PROC DESTDIR="$WDIR/linux/iphone/" \
 	LIBPLIST_LIBS="$WDIR/libplist/lib/libplist-2.0.a" \
 	install \
 		&& cd ../ \
-		|| (echo "[!] ldid build failure"; exit 1)
+		|| { echo "[!] ldid build failure"; exit 1; }
 
 echo "[!] Build tapi"
 git clone --depth=1 https://github.com/tpoechtrager/apple-libtapi -b 1100.0.11
@@ -183,7 +183,7 @@ cmake -B build-tblgens -G "Ninja" \
 	-DCMAKE_BUILD_TYPE=Release \
 	-S src/llvm
 cmake --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
-	|| (echo "[!] tapi tblgen build failure"; exit 1)
+	|| { echo "[!] tapi tblgen build failure"; exit 1; }
 
 # build tapi for target arch with support for useful targets
 cmake -B build -G "Ninja" \
@@ -197,12 +197,15 @@ cmake -B build -G "Ninja" \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DTAPI_FULL_VERSION="$(cat $PWD/VERSION.txt | grep "tapi" | grep -o '[[:digit:]].*')" \
 	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-tblgens/bin/" \
+	-DLLVM_TABLEGEN="$PWD/build-tblgens/bin/llvm-tblgen" \
+	-DCLANG_TABLEGEN="$PWD/build-tblgens/bin/clang-tblgen" \
+	-DCLANG_TABLEGEN_EXE="$PWD/build-tblgens/bin/clang-tblgen" \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
 	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S src/llvm
 cmake --build build --target install-libtapi install-tapi-headers install-tapi -- -j$PROC \
-	|| (echo "[!] (lib)tapi build failure"; exit 1)
+	|| { echo "[!] (lib)tapi build failure"; exit 1; }
 
 echo "[!] Build cctools"
 git clone --depth=1 https://github.com/tpoechtrager/cctools-port/ -b 986-ld64-711
@@ -217,9 +220,9 @@ git clone --depth=1 https://github.com/tpoechtrager/cctools-port/ -b 986-ld64-71
 	CXX="$HOME/cc.sh --cc-localbin" \
 	CXXABI_LIB="-l:libc++abi.a" \
 	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-rpath,'\$\$ORIGIN/../lib64' -Wl,-z,origin" \
-		|| (echo "[!] cctools-port configure failure"; cat config.log; exit 1)
+		|| { echo "[!] cctools-port configure failure"; cat config.log; exit 1; }
 make -j$PROC install \
-	|| (echo "[!] cctools-port build failure"; exit 1)
+	|| { echo "[!] cctools-port build failure"; exit 1; }
 
 echo "[!] Prep build for release"
 tar -cJvf $HOME/iOSToolchain.tar.xz -C $WDIR/ linux/iphone/ \

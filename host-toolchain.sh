@@ -69,7 +69,7 @@ cmake -B build -G "Ninja" \
    -DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
    -S llvm
 cmake --build build --target install -- -j$PROC \
-   || (echo "[!] LLVM build failure"; exit 1)
+   || { echo "[!] LLVM build failure"; exit 1; }
 
 # TODO
 # echo "[!] Build compiler-rt"
@@ -91,7 +91,7 @@ cmake --build build --target install -- -j$PROC \
 #     -DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 #     -S llvm
 # cmake --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
-#    || (echo "[!] compiler-rt build failure"; exit 1)
+#    || { echo "[!] compiler-rt build failure"; exit 1; }
 
 cd $WDIR/
 echo "[!] Build libplist" # doing this to get the static archive
@@ -100,7 +100,7 @@ cd lp
 ./autogen.sh --prefix="$WDIR/libplist" --without-cython --enable-static --disable-shared
 make -j$PROC install \
    && cp -av $WDIR/libplist/bin/plistutil $WDIR/linux/iphone/bin/; cd ../ \
-   || (echo "[!] libplist build failure"; exit 1)
+   || { echo "[!] libplist build failure"; exit 1; }
 
 echo "[!] Build ldid"
 git clone --depth=1 https://github.com/ProcursusTeam/ldid
@@ -112,7 +112,7 @@ make -j$PROC DESTDIR="$WDIR/linux/iphone/" \
    LIBPLIST_LIBS="$WDIR/libplist/lib/libplist-2.0.a" \
    install \
 	   && cd ../ \
-	   || (echo "[!] ldid build failure"; exit 1)
+	   || { echo "[!] ldid build failure"; exit 1; }
 
 echo "[!] Build tapi"
 git clone https://github.com/tpoechtrager/apple-libtapi -b 1100.0.11
@@ -125,7 +125,7 @@ cmake -B build-tblgens -G "Ninja" \
 	-DCMAKE_BUILD_TYPE=Release \
 	-S src/llvm
 cmake --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
-	|| (echo "[!] tblgen build failure"; exit 1)
+	|| { echo "[!] tblgen build failure"; exit 1; }
 
 cmake -B build -G "Ninja" \
 	-DLLVM_ENABLE_PROJECTS="libtapi" \
@@ -141,7 +141,7 @@ cmake -B build -G "Ninja" \
 	-S src/llvm
 cmake --build build --target install-libtapi install-tapi-headers install-tapi -- -j$PROC \
 	&& cd ../ \
-	|| (echo "[!] (lib)tapi build failure"; exit 1)
+	|| { echo "[!] (lib)tapi build failure"; exit 1; }
 
 echo "[!] Build cctools"
 git clone https://github.com/tpoechtrager/cctools-port -b 986-ld64-711
@@ -151,13 +151,11 @@ cd cctools-port/cctools/
 	--enable-tapi-support \
 	--with-libtapi="$WDIR/linux/iphone/" \
 	--program-prefix="" \
-	CC="$WDIR/linux/iphone/bin/clang" \
-	CXX="$WDIR/linux/iphone/bin/clang++" \
 	CXXABI_LIB="-l:libc++abi.a" \
 	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-rpath,'\$\$ORIGIN/../lib64' -Wl,-z,origin" \
-		|| (echo "[!] cctools-port configure failure"; cat config.log; exit 1)
+		|| { echo "[!] cctools-port configure failure"; cat config.log; exit 1; }
 make -j$PROC install \
-	|| (echo "[!] cctools-port build failure"; exit 1)
+	|| { echo "[!] cctools-port build failure"; exit 1; }
 
 echo "[!] Prep build for release"
 tar -cJvf $HOME/iOSToolchain.tar.xz -C $WDIR/ linux/iphone/ \

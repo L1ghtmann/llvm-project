@@ -42,4 +42,11 @@ FLAGS+=" -isystem $SYSROOT_PATH/include/c++/$GCC_VERSION/$TARGET_ARCH"
 FLAGS+=" -Wl,--sysroot=$SYSROOT_PATH/sysroot -L$SYSROOT_PATH/sysroot/usr/lib"
 FLAGS+=" -L $SYSROOT_PATH/../lib/gcc/$TARGET_ARCH/$GCC_VERSION"
 
+# Check whether clang or clang++ is called
+case $(basename "$0") in
+	*clang) COMPILER="$CC" ;;
+	*clang++) COMPILER="$CXX" ;;
+	*) echo "Unknown compiler. Use clang or clang++." && exit 1 ;;
+esac
+
 exec "$COMPILER" $FLAGS "$@"
