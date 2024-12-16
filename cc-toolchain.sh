@@ -24,6 +24,8 @@ if ! dpkg -l tzdata > /dev/null; then
 	sudo dpkg-reconfigure --frontend noninteractive tzdata
 fi
 
+ARCH="$1"
+
 sudo apt update || true
 # this is very silly, but cctools-port
 # treats the llvm-build ld as GNU
@@ -43,8 +45,8 @@ sudo apt install -y build-essential \
 	ninja-build \
 	pkg-config \
 	python3 \
-	gcc-$1-linux-gnu \
-	g++-$1-linux-gnu || exit 1
+	gcc-$ARCH-linux-gnu \
+	g++-$ARCH-linux-gnu || exit 1
 
 # NOTE: change arch listed in section below depending on your target
 # Unfortunately, dpkg arch is not always 1:1 with the standard name (e.g., aarch64 -> arm64)
@@ -66,9 +68,9 @@ EOF
 sudo apt update || true
 sudo apt install -y libssl-dev:arm64
 
-ARCH=$(uname -m)
 PROC=$(nproc --all)
 WDIR="$HOME/work"
+LLVM="$CWD"
 
 mkdir -pv $WDIR/{linux/iphone/,libplist/}
 
@@ -85,8 +87,8 @@ cmake -Wno-dev -B build-host -G "Ninja" \
 cmake --build build-host --target llvm-config llvm-tblgen clang-tblgen -- -j$PROC \
 	|| { echo "[!] host LLVM build failure"; exit 1; }
 
-# sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/$1-linux-gnu-gcc 30
-# sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/$1-linux-gnu-g++ 30
+# sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/$ARCH-linux-gnu-gcc 30
+# sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/$ARCH-linux-gnu-g++ 30
 # sudo update-alternatives --set cc /usr/bin/gcc
 # sudo update-alternatives --set c++ /usr/bin/g++
 
@@ -94,8 +96,8 @@ cmake --build build-host --target llvm-config llvm-tblgen clang-tblgen -- -j$PRO
 cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	-DCMAKE_SYSTEM_VERSION="12" \
-	-DLLVM_TARGET_ARCH=$1 \
-	-DLLVM_DEFAULT_TARGET_TRIPLE=$1-linux-gnu \
+	-DLLVM_TARGET_ARCH=$ARCH \
+	-DLLVM_DEFAULT_TARGET_TRIPLE=$ARCH-linux-gnu \
 	-DLLVM_ENABLE_PROJECTS="clang" \
 	-DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
 	-DLLVM_LINK_LLVM_DYLIB=ON \
@@ -109,8 +111,8 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
-	-DCMAKE_C_COMPILER="$HOME/cc.sh" \
-	-DCMAKE_CXX_COMPILER="$HOME/cc.sh" \
+	-DCMAKE_C_COMPILER="$LLVM/cc.sh" \
+	-DCMAKE_CXX_COMPILER="$LLVM/cc.sh" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S llvm
 cmake --build build --target install -- -j$PROC \
@@ -122,8 +124,8 @@ cmake --build build --target install -- -j$PROC \
 # cmake -Wno-dev -B build-compiler-rt -G "Ninja" \
 # 	-DCMAKE_SYSTEM_NAME="Linux" \
 # 	-DCMAKE_SYSTEM_VERSION="12" \
-# 	-DLLVM_TARGET_ARCH=$1 \
-# 	-DLLVM_DEFAULT_TARGET_TRIPLE=$1-linux-gnu \
+# 	-DLLVM_TARGET_ARCH=$ARCH \
+# 	-DLLVM_DEFAULT_TARGET_TRIPLE=$ARCH-linux-gnu \
 # 	-DLLVM_ENABLE_PROJECTS="clang" \
 # 	-DLLVM_ENABLE_RUNTIMES="compiler-rt" \
 # 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
@@ -139,8 +141,8 @@ cmake --build build --target install -- -j$PROC \
 # 	-DCOMPILER_RT_BUILD_BUILTINS=ON \
 # 	-DBUILTINS_CMAKE_ARGS="-DCOMPILER_RT_ENABLE_IOS=ON -DCOMPILER_RT_ENABLE_WATCHOS=ON -DCOMPILER_RT_ENABLE_TVOS=ON" \
 # 	-DCMAKE_BUILD_TYPE=MinSizeRel \
-#	-DCMAKE_C_COMPILER="$HOME/cc.sh" \
-#	-DCMAKE_CXX_COMPILER="$HOME/cc.sh" \
+#	-DCMAKE_C_COMPILER="$LLVM/cc.sh" \
+#	-DCMAKE_CXX_COMPILER="$LLVM/cc.sh" \
 # 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 # 	-S llvm
 # cmake --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
@@ -155,7 +157,7 @@ cd lp
 			--without-cython \
 			--enable-static \
 			--disable-shared \
-			--host=$1-linux-gnu \
+			--host=$ARCH-linux-gnu \
 			CC=/usr/bin/$ARCH-linux-gnu-gcc \
 			CXX=/usr/bin/$ARCH-linux-gnu-g++
 make -j$PROC install \
@@ -194,20 +196,20 @@ cd apple-libtapi
 cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	-DCMAKE_SYSTEM_VERSION="12" \
-	-DLLVM_TARGET_ARCH=$1 \
-	-DLLVM_DEFAULT_TARGET_TRIPLE=$1-linux-gnu \
+	-DLLVM_TARGET_ARCH=$ARCH \
+	-DLLVM_DEFAULT_TARGET_TRIPLE=$ARCH-linux-gnu \
 	-DLLVM_ENABLE_PROJECTS="libtapi" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DTAPI_FULL_VERSION="$(cat $PWD/VERSION.txt | grep "tapi" | grep -o '[[:digit:]].*')" \
-	-DLLVM_NATIVE_TOOL_DIR="$HOME/build-host/bin/" \
-	-DLLVM_TABLEGEN="$HOME/build-host/bin/llvm-tblgen" \
-	-DCLANG_TABLEGEN="$HOME/build-host/bin/clang-tblgen" \
-	-DCLANG_TABLEGEN_EXE="$HOME/build-host/bin/clang-tblgen" \
+	-DLLVM_NATIVE_TOOL_DIR="$LLVM/build-host/bin/" \
+	-DLLVM_TABLEGEN="$LLVM/build-host/bin/llvm-tblgen" \
+	-DCLANG_TABLEGEN="$LLVM/build-host/bin/clang-tblgen" \
+	-DCLANG_TABLEGEN_EXE="$LLVM/build-host/bin/clang-tblgen" \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
-	-DCMAKE_C_COMPILER="$HOME/cc.sh" \
-	-DCMAKE_CXX_COMPILER="$HOME/cc.sh" \
+	-DCMAKE_C_COMPILER="$LLVM/cc.sh" \
+	-DCMAKE_CXX_COMPILER="$LLVM/cc.sh" \
 	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S src/llvm
@@ -217,14 +219,13 @@ cmake --build build --target install-libtapi install-tapi-headers install-tapi -
 echo "[!] Build cctools"
 git clone --depth=1 https://github.com/tpoechtrager/cctools-port/ -b 986-ld64-711
 ./cctools-port/cctools/configure --prefix="$WDIR/linux/iphone/" \
-	--build=$ARCH-linux-gnu \
-	--host=$1-linux-gnu \
+	--host=$ARCH-linux-gnu \
 	--target=aarch64-apple-darwin14 \
 	--enable-tapi-support \
 	--with-libtapi="$WDIR/linux/iphone/" \
 	--program-prefix="" \
-	CC="$HOME/cc.sh" \
-	CXX="$HOME/cc.sh" \
+	CC="$LLVM/cc.sh" \
+	CXX="$LLVM/cc.sh" \
 	CXXABI_LIB="-l:libc++abi.a" \
 	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-rpath,'\$\$ORIGIN/../lib64' -Wl,-z,origin" \
 		|| { echo "[!] cctools-port configure failure"; cat config.log; exit 1; }
@@ -234,11 +235,11 @@ make -j$PROC install \
 echo "[!] Sanity check"
 find $WDIR/linux/iphone/bin -type f -exec file {} \; > result
 count="$(cat result | grep ELF | wc -l)"
-num="$(cat result | grep $1 | wc -l)"
+num="$(cat result | grep $ARCH | wc -l)"
 # check format of all bins
 if [[ $num != $count ]]; then
-	echo "[xx] Rip - have some non-$1 bins:"
-	echo "$(cat result | grep ELF | grep -v $1)"
+	echo "[xx] Rip - have some non-$ARCH bins:"
+	echo "$(cat result | grep ELF | grep -v $ARCH)"
 	exit 1
 fi
 
