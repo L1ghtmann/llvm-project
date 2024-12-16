@@ -46,11 +46,6 @@ sudo apt install -y build-essential \
 	gcc-$1-linux-gnu \
 	g++-$1-linux-gnu || exit 1
 
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/$1-linux-gnu-gcc 30
-sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/$1-linux-gnu-g++ 30
-sudo update-alternatives --set cc /usr/bin/gcc
-sudo update-alternatives --set c++ /usr/bin/g++
-
 # NOTE: change arch listed in section below depending on your target
 # Unfortunately, dpkg arch is not always 1:1 with the standard name (e.g., aarch64 -> arm64)
 sudo dpkg --add-architecture arm64
@@ -91,12 +86,15 @@ cmake -Wno-dev -B build-host -G "Ninja" \
 cmake --build build-host --target llvm-config llvm-tblgen clang-tblgen clang -- -j$PROC \
 	|| { echo "[!] host LLVM build failure"; exit 1; }
 
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/$1-linux-gnu-gcc 30
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/$1-linux-gnu-g++ 30
+sudo update-alternatives --set cc /usr/bin/gcc
+sudo update-alternatives --set c++ /usr/bin/g++
+
 # cross-compile llvm/clang for target plat with support for useful targets
 cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	-DCMAKE_SYSTEM_VERSION="12" \
-	-DCMAKE_C_COMPILER=/usr/bin/$ARCH-linux-gnu-gcc \
-	-DCMAKE_CXX_COMPILER=/usr/bin/$ARCH-linux-gnu-g++ \
 	-DLLVM_TARGET_ARCH=$1 \
 	-DLLVM_DEFAULT_TARGET_TRIPLE=$1-linux-gnu \
 	-DLLVM_ENABLE_PROJECTS="clang" \
@@ -123,8 +121,6 @@ cmake --build build --target install -- -j$PROC \
 # cmake -Wno-dev -B build-compiler-rt -G "Ninja" \
 # 	-DCMAKE_SYSTEM_NAME="Linux" \
 # 	-DCMAKE_SYSTEM_VERSION="12" \
-#	-DCMAKE_C_COMPILER=/usr/bin/$ARCH-linux-gnu-gcc \
-#	-DCMAKE_CXX_COMPILER=/usr/bin/$ARCH-linux-gnu-g++ \
 # 	-DLLVM_TARGET_ARCH=$1 \
 # 	-DLLVM_DEFAULT_TARGET_TRIPLE=$1-linux-gnu \
 # 	-DLLVM_ENABLE_PROJECTS="clang" \
@@ -173,23 +169,20 @@ echo "[!] Build tapi"
 git clone --depth=1 https://github.com/tpoechtrager/apple-libtapi -b 1100.0.11
 cd apple-libtapi
 # build tapi-catered llvm/clang-tblgen for host with support for host and target
-cmake -Wno-dev -B build-tblgens -G "Ninja" \
-	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
-	-DLLVM_INCLUDE_TESTS=OFF \
-	-DLLVM_ENABLE_WARNINGS=OFF \
-	-DCLANG_INCLUDE_TESTS=OFF \
-	-DCMAKE_BUILD_TYPE=Release \
-	-S src/llvm
-cmake --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
-	|| { echo "[!] tapi tblgen build failure"; exit 1; }
+# cmake -Wno-dev -B build-tblgens -G "Ninja" \
+# 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+# 	-DLLVM_INCLUDE_TESTS=OFF \
+# 	-DLLVM_ENABLE_WARNINGS=OFF \
+# 	-DCLANG_INCLUDE_TESTS=OFF \
+# 	-DCMAKE_BUILD_TYPE=Release \
+# 	-S src/llvm
+# cmake --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
+# 	|| { echo "[!] tapi tblgen build failure"; exit 1; }
 
 # build tapi for target arch with support for useful targets
 cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	-DCMAKE_SYSTEM_VERSION="12" \
-	-DCMAKE_C_COMPILER=/usr/bin/$ARCH-linux-gnu-gcc \
-	-DCMAKE_CXX_COMPILER=/usr/bin/$ARCH-linux-gnu-g++ \
-	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/" \
 	-DLLVM_TARGET_ARCH=$1 \
 	-DLLVM_DEFAULT_TARGET_TRIPLE=$1-linux-gnu \
 	-DLLVM_ENABLE_PROJECTS="libtapi" \
@@ -197,11 +190,12 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DTAPI_FULL_VERSION="$(cat $PWD/VERSION.txt | grep "tapi" | grep -o '[[:digit:]].*')" \
-	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-tblgens/bin/" \
-	-DLLVM_TABLEGEN="$PWD/build-tblgens/bin/llvm-tblgen" \
-	-DCLANG_TABLEGEN="$PWD/build-tblgens/bin/clang-tblgen" \
-	-DCLANG_TABLEGEN_EXE="$PWD/build-tblgens/bin/clang-tblgen" \
+	-DLLVM_NATIVE_TOOL_DIR="$HOME/build-host/bin/" \
+	-DLLVM_TABLEGEN="$HOME/build-host/bin/llvm-tblgen" \
+	-DCLANG_TABLEGEN="$HOME/build-host/bin/clang-tblgen" \
+	-DCLANG_TABLEGEN_EXE="$HOME/build-host/bin/clang-tblgen" \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
+	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S src/llvm
 cmake --build build --target install-libtapi install-tapi-headers install-tapi -- -j$PROC \
