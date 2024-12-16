@@ -2,34 +2,14 @@
 # need a bit of special configuration for cross-compiling cctools-port ...
 # https://github.com/tpoechtrager/cctools-port/pull/137#issuecomment-1710484561
 
-# Accept '--cc-localbin' flag
-# while [[ $# -gt 0 ]]; do
-#   case $1 in
-# 	--cc-localbin)
-# 		localbin="yup"
-# 		shift
-# 		;;
-# 	*)
-# 		break
-# 		;;
-#   esac
-# done
-
 # modify as desired
 TARGET_ARCH="aarch64-linux-gnu"
 
 GCC_VERSION=$(gcc -dumpversion)
-
 SYSROOT_PATH="$(which gcc)/../$TARGET_ARCH"
 
-WDIR="$HOME/work"
-# if [[ -z $localbin ]]; then
-# 	CC="$WDIR/llvm-project/llvm-project/build-host/bin/clang"
-# 	CXX="$WDIR/llvm-project/llvm-project/build-host/bin/clang++"
-# else
-CC="clang"
-CXX="clang++"
-# fi
+CC="/usr/bin/clang"
+CXX="/usr/bin/clang++"
 
 FLAGS="-Qunused-arguments"
 FLAGS+=" --target=$TARGET_ARCH"
@@ -43,10 +23,19 @@ FLAGS+=" -Wl,--sysroot=$SYSROOT_PATH/sysroot -L$SYSROOT_PATH/sysroot/usr/lib"
 FLAGS+=" -L $SYSROOT_PATH/../lib/gcc/$TARGET_ARCH/$GCC_VERSION"
 
 # Check whether clang or clang++ is called
-case $(basename "$0") in
-	*clang) COMPILER="$CC" ;;
-	*clang++) COMPILER="$CXX" ;;
-	*) echo "Unknown compiler. Use clang or clang++." && exit 1 ;;
+case $(basename "$1") in
+	*clang)
+		COMPILER="$CC"
+		shift
+		;;
+	*clang++)
+		COMPILER="$CXX"
+		shift
+		;;
+	*)
+		echo "Unknown compiler. Use clang or clang++."
+		exit 1
+		;;
 esac
 
 exec "$COMPILER" $FLAGS "$@"
