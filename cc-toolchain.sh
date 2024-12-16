@@ -88,7 +88,7 @@ cmake -Wno-dev -B build-host -G "Ninja" \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=Release \
 	-S llvm
-cmake -Wno-dev --build build-host --target llvm-config llvm-tblgen clang-tblgen clang -- -j$PROC \
+cmake --build build-host --target llvm-config llvm-tblgen clang-tblgen clang -- -j$PROC \
 	|| { echo "[!] host LLVM build failure"; exit 1; }
 
 # cross-compile llvm/clang for target plat with support for useful targets
@@ -114,7 +114,7 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S llvm
-cmake -Wno-dev --build build --target install -- -j$PROC \
+cmake --build build --target install -- -j$PROC \
 	|| { echo "[!] LLVM build failure"; exit 1; }
 
 # TODO
@@ -144,7 +144,7 @@ cmake -Wno-dev --build build --target install -- -j$PROC \
 # 	-DCMAKE_BUILD_TYPE=MinSizeRel \
 # 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 # 	-S llvm
-# cmake -Wno-dev --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
+# cmake --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
 #    || { echo "[!] compiler-rt build failure"; exit 1; }
 
 cd $WDIR
@@ -180,7 +180,7 @@ cmake -Wno-dev -B build-tblgens -G "Ninja" \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=Release \
 	-S src/llvm
-cmake -Wno-dev --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
+cmake --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
 	|| { echo "[!] tapi tblgen build failure"; exit 1; }
 
 # build tapi for target arch with support for useful targets
@@ -204,7 +204,7 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S src/llvm
-cmake -Wno-dev --build build --target install-libtapi install-tapi-headers install-tapi -- -j$PROC \
+cmake --build build --target install-libtapi install-tapi-headers install-tapi -- -j$PROC \
 	|| { echo "[!] (lib)tapi build failure"; exit 1; }
 
 echo "[!] Build cctools"
