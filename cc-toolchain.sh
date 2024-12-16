@@ -85,10 +85,10 @@ cmake -Wno-dev -B build-host -G "Ninja" \
 cmake --build build-host --target llvm-config llvm-tblgen clang-tblgen -- -j$PROC \
 	|| { echo "[!] host LLVM build failure"; exit 1; }
 
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/$1-linux-gnu-gcc 30
-sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/$1-linux-gnu-g++ 30
-sudo update-alternatives --set cc /usr/bin/gcc
-sudo update-alternatives --set c++ /usr/bin/g++
+# sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/$1-linux-gnu-gcc 30
+# sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/$1-linux-gnu-g++ 30
+# sudo update-alternatives --set cc /usr/bin/gcc
+# sudo update-alternatives --set c++ /usr/bin/g++
 
 # cross-compile llvm/clang for target plat with support for useful targets
 cmake -Wno-dev -B build -G "Ninja" \
@@ -109,6 +109,8 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
+	-DCMAKE_C_COMPILER="$HOME/cc.sh" \
+	-DCMAKE_CXX_COMPILER="$HOME/cc.sh" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S llvm
 cmake --build build --target install -- -j$PROC \
@@ -137,6 +139,8 @@ cmake --build build --target install -- -j$PROC \
 # 	-DCOMPILER_RT_BUILD_BUILTINS=ON \
 # 	-DBUILTINS_CMAKE_ARGS="-DCOMPILER_RT_ENABLE_IOS=ON -DCOMPILER_RT_ENABLE_WATCHOS=ON -DCOMPILER_RT_ENABLE_TVOS=ON" \
 # 	-DCMAKE_BUILD_TYPE=MinSizeRel \
+#	-DCMAKE_C_COMPILER="$HOME/cc.sh" \
+#	-DCMAKE_CXX_COMPILER="$HOME/cc.sh" \
 # 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 # 	-S llvm
 # cmake --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
@@ -147,7 +151,13 @@ echo "[!] Build libplist"
 # doing this to get the static archive
 git clone --depth=1 https://github.com/libimobiledevice/libplist lp
 cd lp
-./autogen.sh --prefix="$WDIR/libplist" --without-cython --enable-static --disable-shared --host=$1-linux-gnu
+./autogen.sh --prefix="$WDIR/libplist" \
+			--without-cython \
+			--enable-static \
+			--disable-shared \
+			--host=$1-linux-gnu \
+			CC=/usr/bin/$ARCH-linux-gnu-gcc \
+			CXX=/usr/bin/$ARCH-linux-gnu-g++
 make -j$PROC install \
 	&& cp -av $WDIR/libplist/bin/plistutil $WDIR/linux/iphone/bin/; cd ../ \
 	|| { echo "[!] libplist build failure"; exit 1; }
@@ -156,13 +166,15 @@ echo "[!] Build ldid"
 git clone --depth=1 https://github.com/ProcursusTeam/ldid
 cd ldid
 make -j$PROC DESTDIR="$WDIR/linux/iphone/" \
-	PREFIX="" \
-	LIBCRYPTO_LIBS="-l:libcrypto.a -lpthread -ldl" \
-	LIBPLIST_INCLUDES="-I$WDIR/libplist/include" \
-	LIBPLIST_LIBS="$WDIR/libplist/lib/libplist-2.0.a" \
-	install \
-		&& cd ../ \
-		|| { echo "[!] ldid build failure"; exit 1; }
+			PREFIX="" \
+			LIBCRYPTO_LIBS="-l:libcrypto.a -lpthread -ldl" \
+			LIBPLIST_INCLUDES="-I$WDIR/libplist/include" \
+			LIBPLIST_LIBS="$WDIR/libplist/lib/libplist-2.0.a" \
+			CC=/usr/bin/$ARCH-linux-gnu-gcc \
+			CXX=/usr/bin/$ARCH-linux-gnu-g++ \
+			install \
+				&& cd ../ \
+				|| { echo "[!] ldid build failure"; exit 1; }
 
 echo "[!] Build tapi"
 git clone --depth=1 https://github.com/tpoechtrager/apple-libtapi -b 1100.0.11
@@ -194,6 +206,8 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCLANG_TABLEGEN="$HOME/build-host/bin/clang-tblgen" \
 	-DCLANG_TABLEGEN_EXE="$HOME/build-host/bin/clang-tblgen" \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
+	-DCMAKE_C_COMPILER="$HOME/cc.sh" \
+	-DCMAKE_CXX_COMPILER="$HOME/cc.sh" \
 	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S src/llvm
@@ -216,6 +230,17 @@ git clone --depth=1 https://github.com/tpoechtrager/cctools-port/ -b 986-ld64-71
 		|| { echo "[!] cctools-port configure failure"; cat config.log; exit 1; }
 make -j$PROC install \
 	|| { echo "[!] cctools-port build failure"; exit 1; }
+
+echo "[!] Sanity check"
+find $WDIR/linux/iphone/bin -type f -exec file {} \; > result
+count="$(cat result | grep ELF | wc -l)"
+num="$(cat result | grep $1 | wc -l)"
+# check format of all bins
+if [[ $num != $count ]]; then
+	echo "[xx] Rip - have some non-$1 bins:"
+	echo "$(cat result | grep ELF | grep -v $1)"
+	exit 1
+fi
 
 echo "[!] Prep build for release"
 tar -cJvf $HOME/iOSToolchain.tar.xz -C $WDIR/ linux/iphone/ \

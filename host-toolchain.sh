@@ -103,13 +103,13 @@ echo "[!] Build ldid"
 git clone --depth=1 https://github.com/ProcursusTeam/ldid
 cd ldid
 make -j$PROC DESTDIR="$WDIR/linux/iphone/" \
-   PREFIX="" \
-   LIBCRYPTO_LIBS="-l:libcrypto.a -lpthread -ldl" \
-   LIBPLIST_INCLUDES="-I$WDIR/libplist/include" \
-   LIBPLIST_LIBS="$WDIR/libplist/lib/libplist-2.0.a" \
-   install \
-	   && cd ../ \
-	   || { echo "[!] ldid build failure"; exit 1; }
+			PREFIX="" \
+			LIBCRYPTO_LIBS="-l:libcrypto.a -lpthread -ldl" \
+			LIBPLIST_INCLUDES="-I$WDIR/libplist/include" \
+			LIBPLIST_LIBS="$WDIR/libplist/lib/libplist-2.0.a" \
+			install \
+				&& cd ../ \
+				|| { echo "[!] ldid build failure"; exit 1; }
 
 echo "[!] Build tapi"
 git clone https://github.com/tpoechtrager/apple-libtapi -b 1100.0.11
