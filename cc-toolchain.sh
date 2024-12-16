@@ -77,13 +77,12 @@ echo "[!] Prep build for release"
 cmake -Wno-dev -B build-host -G "Ninja" \
 	-DLLVM_ENABLE_PROJECTS=clang \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
-	-DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=Release \
 	-S llvm
-cmake --build build-host --target llvm-config llvm-tblgen clang-tblgen clang -- -j$PROC \
+cmake --build build-host --target llvm-config llvm-tblgen clang-tblgen -- -j$PROC \
 	|| { echo "[!] host LLVM build failure"; exit 1; }
 
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/$1-linux-gnu-gcc 30
@@ -210,8 +209,8 @@ git clone --depth=1 https://github.com/tpoechtrager/cctools-port/ -b 986-ld64-71
 	--enable-tapi-support \
 	--with-libtapi="$WDIR/linux/iphone/" \
 	--program-prefix="" \
-	CC="$HOME/cc.sh --cc-localbin" \
-	CXX="$HOME/cc.sh --cc-localbin" \
+	CC="$HOME/cc.sh" \
+	CXX="$HOME/cc.sh" \
 	CXXABI_LIB="-l:libc++abi.a" \
 	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-rpath,'\$\$ORIGIN/../lib64' -Wl,-z,origin" \
 		|| { echo "[!] cctools-port configure failure"; cat config.log; exit 1; }
