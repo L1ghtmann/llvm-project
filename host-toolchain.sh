@@ -49,11 +49,8 @@ WDIR="$HOME/work"
 
 mkdir -pv $WDIR/{linux/iphone/,libplist/}
 
-# preemptively tell cmake to chill
-export CMAKE_WARN_DEV=0
-
 echo "[!] Build LLVM/Clang"
-cmake -B build -G "Ninja" \
+cmake -Wno-dev -B build -G "Ninja" \
    -DLLVM_ENABLE_PROJECTS="clang" \
    -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
    -DLLVM_LINK_LLVM_DYLIB=ON \
@@ -68,12 +65,12 @@ cmake -B build -G "Ninja" \
    -DCMAKE_BUILD_TYPE=MinSizeRel \
    -DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
    -S llvm
-cmake --build build --target install -- -j$PROC \
+cmake -Wno-dev --build build --target install -- -j$PROC \
    || { echo "[!] LLVM build failure"; exit 1; }
 
 # TODO
 # echo "[!] Build compiler-rt"
-# cmake -B build-compiler-rt -G "Ninja" \
+# cmake -Wno-dev -B build-compiler-rt -G "Ninja" \
 #     -DLLVM_ENABLE_PROJECTS="clang" \
 #     -DLLVM_ENABLE_RUNTIMES="compiler-rt" \
 #     -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
@@ -90,7 +87,7 @@ cmake --build build --target install -- -j$PROC \
 #     -DCMAKE_BUILD_TYPE=MinSizeRel \
 #     -DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 #     -S llvm
-# cmake --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
+# cmake -Wno-dev --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
 #    || { echo "[!] compiler-rt build failure"; exit 1; }
 
 cd $WDIR/
@@ -117,17 +114,17 @@ make -j$PROC DESTDIR="$WDIR/linux/iphone/" \
 echo "[!] Build tapi"
 git clone https://github.com/tpoechtrager/apple-libtapi -b 1100.0.11
 cd apple-libtapi
-cmake -B build-tblgens -G "Ninja" \
+cmake -Wno-dev -B build-tblgens -G "Ninja" \
 	-DLLVM_TARGETS_TO_BUILD="X86" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=Release \
 	-S src/llvm
-cmake --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
+cmake -Wno-dev --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
 	|| { echo "[!] tblgen build failure"; exit 1; }
 
-cmake -B build -G "Ninja" \
+cmake -Wno-dev -B build -G "Ninja" \
 	-DLLVM_ENABLE_PROJECTS="libtapi" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
@@ -139,7 +136,7 @@ cmake -B build -G "Ninja" \
 	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S src/llvm
-cmake --build build --target install-libtapi install-tapi-headers install-tapi -- -j$PROC \
+cmake -Wno-dev --build build --target install-libtapi install-tapi-headers install-tapi -- -j$PROC \
 	&& cd ../ \
 	|| { echo "[!] (lib)tapi build failure"; exit 1; }
 
