@@ -87,11 +87,6 @@ cmake -Wno-dev -B build-host -G "Ninja" \
 cmake --build build-host --target llvm-config llvm-tblgen clang-tblgen -- -j$PROC \
 	|| { echo "[!] host LLVM build failure"; exit 1; }
 
-# sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/$ARCH-linux-gnu-gcc 30
-# sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/$ARCH-linux-gnu-g++ 30
-# sudo update-alternatives --set cc /usr/bin/gcc
-# sudo update-alternatives --set c++ /usr/bin/g++
-
 # cross-compile llvm/clang for target plat with support for useful targets
 cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_SYSTEM_NAME="Linux" \
@@ -111,8 +106,8 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
-	-DCMAKE_C_COMPILER="clang" \
-	-DCMAKE_CXX_COMPILER="clang++" \
+	-DCMAKE_C_COMPILER="$LLVM/cc.sh clang" \
+	-DCMAKE_CXX_COMPILER="$LLVM/cc.sh clang++" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S llvm
 cmake --build build --target install -- -j$PROC \
@@ -141,8 +136,8 @@ cmake --build build --target install -- -j$PROC \
 # 	-DCOMPILER_RT_BUILD_BUILTINS=ON \
 # 	-DBUILTINS_CMAKE_ARGS="-DCOMPILER_RT_ENABLE_IOS=ON -DCOMPILER_RT_ENABLE_WATCHOS=ON -DCOMPILER_RT_ENABLE_TVOS=ON" \
 # 	-DCMAKE_BUILD_TYPE=MinSizeRel \
-#	-DCMAKE_C_COMPILER="clang" \
-#	-DCMAKE_CXX_COMPILER="clang++" \
+#	-DCMAKE_C_COMPILER="$LLVM/cc.sh clang" \
+#	-DCMAKE_CXX_COMPILER="$LLVM/cc.sh clang++" \
 # 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 # 	-S llvm
 # cmake --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
@@ -207,8 +202,8 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCLANG_TABLEGEN="$PWD/build-tblgens/bin/clang-tblgen" \
 	-DCLANG_TABLEGEN_EXE="$PWD/build-tblgens/bin/clang-tblgen" \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
-	-DCMAKE_C_COMPILER="clang" \
-	-DCMAKE_CXX_COMPILER="clang++" \
+	-DCMAKE_C_COMPILER="$LLVM/cc.sh clang" \
+	-DCMAKE_CXX_COMPILER="$LLVM/cc.sh clang++" \
 	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S src/llvm
