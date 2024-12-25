@@ -69,7 +69,7 @@ deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-backports main r
 EOF
 
 sudo apt update || true
-sudo apt install -y libssl-dev:arm64 #libstdc++6:arm64
+sudo apt install -y libssl-dev:arm64 libstdc++6:arm64
 fi
 
 PROC=$(nproc --all)
