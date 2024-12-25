@@ -231,8 +231,10 @@ echo "[!] Build libdispatch"
 git clone --depth=1 https://github.com/tpoechtrager/apple-libdispatch/ a-ld
 cd a-ld
 cmake -B build -G "Ninja" \
-	-DCMAKE_C_COMPILER="$HOME/cc.sh" \
-	-DCMAKE_CXX_COMPILER="$HOME/cc.sh" \
+	-DCMAKE_C_COMPILER="/usr/bin/clang" \
+	-DCMAKE_CXX_COMPILER="/usr/bin/clang++" \
+	-DCMAKE_C_FLAGS="$FLAGS" \
+	-DCMAKE_CXX_FLAGS="$FLAGS" \
 	-DCMAKE_BUILD_TYPE=RELEASE \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	.
