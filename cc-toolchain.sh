@@ -82,7 +82,7 @@ echo "[!] Prep build for release"
 # build support tooling for host with support for targets
 cmake -Wno-dev -B build-host -G "Ninja" \
 	-DLLVM_ENABLE_PROJECTS=clang \
-	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+	-DLLVM_TARGETS_TO_BUILD="X86" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
@@ -195,7 +195,7 @@ git clone --depth=1 https://github.com/tpoechtrager/apple-libtapi -b 1100.0.11
 cd apple-libtapi
 # build tapi-catered llvm/clang-tblgen for host with support for host and target
 cmake -Wno-dev -B build-tblgens -G "Ninja" \
-	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+	-DLLVM_TARGETS_TO_BUILD="X86" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
