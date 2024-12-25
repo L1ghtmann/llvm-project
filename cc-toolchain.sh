@@ -9,6 +9,7 @@
 # https://github.com/ClangBuiltLinux/tc-build/issues/150
 # https://twitter.com/noztol/status/1277354097788715009
 # https://stackoverflow.com/questions/2725255/create-statically-linked-binary-that-uses-getaddrinfo
+# https://github.com/tpoechtrager/cctools-port/pull/137#issuecomment-1710484561
 
 if [[ -z $1 ]]; then
 	echo "$0: please pass the target architecture as an argument (e.g., ./cc-toolchain.sh aarch64)"
@@ -32,6 +33,7 @@ sudo apt update || true
 # and attempts to pass '-z', which
 # apple's ld64 doesn't support
 # so need GNU ld + clang for that
+# also use for (lib)tapi build
 sudo apt install -y build-essential \
 	autoconf \
 	automake \
@@ -55,6 +57,7 @@ sudo dpkg --add-architecture arm64
 CODENAME="$(. /etc/os-release; echo ${VERSION_CODENAME/*, /})"
 
 # need these as default --add-architecture links 404 :/
+if [[ -z "$(cat /etc/apt/sources.list | grep arm64)" ]]; then
 sudo tee -a /etc/apt/sources.list << EOF
 deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME main restricted
 deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-updates main restricted
@@ -66,7 +69,8 @@ deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-backports main r
 EOF
 
 sudo apt update || true
-sudo apt install -y libssl-dev:arm64
+sudo apt install -y libssl-dev:arm64 #libstdc++6:arm64
+fi
 
 PROC=$(nproc --all)
 WDIR="$HOME/work"
@@ -84,11 +88,12 @@ cmake -Wno-dev -B build-host -G "Ninja" \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=Release \
 	-S llvm
-cmake --build build-host --target llvm-config llvm-tblgen clang-tblgen -- -j$PROC \
+cmake --build build-host --target llvm-config llvm-tblgen clang-ast-dump clang-tblgen -- -j$PROC \
 	|| { echo "[!] host LLVM build failure"; exit 1; }
 
 # cross-compile llvm/clang for target plat with support for useful targets
 cmake -Wno-dev -B build -G "Ninja" \
+	-DCMAKE_CROSSCOMPILING=ON \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	-DCMAKE_SYSTEM_VERSION="12" \
 	-DLLVM_TARGET_ARCH=$ARCH \
@@ -117,6 +122,7 @@ cmake --build build --target install -- -j$PROC \
 # echo "[!] Build compiler-rt"
 # cross-compile compiler-rt for target plat with support for useful targets
 # cmake -Wno-dev -B build-compiler-rt -G "Ninja" \
+#	-DCMAKE_CROSSCOMPILING=ON \
 # 	-DCMAKE_SYSTEM_NAME="Linux" \
 # 	-DCMAKE_SYSTEM_VERSION="12" \
 # 	-DLLVM_TARGET_ARCH=$ARCH \
@@ -173,6 +179,17 @@ make -j$PROC DESTDIR="$WDIR/linux/iphone/" \
 				&& cd ../ \
 				|| { echo "[!] ldid build failure"; exit 1; }
 
+# clang cc config
+TARGET_ARCH="$ARCH-linux-gnu"
+GCC_VERSION=$(gcc -dumpversion)
+SYSROOT_PATH="/usr/$TARGET_ARCH"
+
+FLAGS="-Qunused-arguments"
+FLAGS+=" --target=$TARGET_ARCH"
+FLAGS+=" -I$SYSROOT_PATH/include/c++/$GCC_VERSION/$TARGET_ARCH"
+FLAGS+=" -L$SYSROOT_PATH/lib -L/usr/lib/$TARGET_ARCH"
+FLAGS+=" -L$SYSROOT_PATH/../lib/gcc-cross/$TARGET_ARCH/$GCC_VERSION"
+
 echo "[!] Build tapi"
 git clone --depth=1 https://github.com/tpoechtrager/apple-libtapi -b 1100.0.11
 cd apple-libtapi
@@ -189,6 +206,7 @@ cmake --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
 
 # build tapi for target arch with support for useful targets
 cmake -Wno-dev -B build -G "Ninja" \
+	-DCMAKE_CROSSCOMPILING=ON \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	-DCMAKE_SYSTEM_VERSION="12" \
 	-DLLVM_TARGET_ARCH=$ARCH \
@@ -202,12 +220,14 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCLANG_TABLEGEN="$PWD/build-tblgens/bin/clang-tblgen" \
 	-DCLANG_TABLEGEN_EXE="$PWD/build-tblgens/bin/clang-tblgen" \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
-	-DCMAKE_C_COMPILER="/usr/bin/$ARCH-linux-gnu-gcc" \
-	-DCMAKE_CXX_COMPILER="/usr/bin/$ARCH-linux-gnu-g++" \
-	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/" \
+	-DCMAKE_C_COMPILER="/usr/bin/clang" \
+	-DCMAKE_CXX_COMPILER="/usr/bin/clang++" \
+	-DCMAKE_C_FLAGS="$FLAGS" \
+	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/ $FLAGS" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S src/llvm
 cmake --build build --target install-libtapi install-tapi-headers install-tapi -- -j$PROC \
+	&& cd ../ \
 	|| { echo "[!] (lib)tapi build failure"; exit 1; }
 
 echo "[!] Build cctools"
@@ -218,12 +238,15 @@ git clone --depth=1 https://github.com/tpoechtrager/cctools-port/ -b 986-ld64-71
 	--enable-tapi-support \
 	--with-libtapi="$WDIR/linux/iphone/" \
 	--program-prefix="" \
-	CC="$LLVM/cc.sh clang" \
-	CXX="$LLVM/cc.sh clang++" \
+	CC="/usr/bin/clang" \
+	CXX="/usr/bin/clang++" \
+	CFLAGS="$FLAGS" \
+	CXXFLAGS="$FLAGS" \
 	CXXABI_LIB="-l:libc++abi.a" \
 	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-rpath,'\$\$ORIGIN/../lib64' -Wl,-z,origin" \
 		|| { echo "[!] cctools-port configure failure"; cat config.log; exit 1; }
 make -j$PROC install \
+	&& cd $LLVM \
 	|| { echo "[!] cctools-port build failure"; exit 1; }
 
 echo "[!] Sanity check"
