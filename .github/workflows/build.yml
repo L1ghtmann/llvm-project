@@ -36,7 +36,6 @@ jobs:
             ./host-toolchain.sh
             mv -v $HOME/iOSToolchain.tar.xz $HOME/iOSToolchain-$(uname -m).tar.xz
           else
-            cp -av cc.sh $HOME
             ./cc-toolchain.sh ${{ matrix.arch }}
             mv -v $HOME/iOSToolchain.tar.xz $HOME/iOSToolchain-${{ matrix.arch }}.tar.xz
           fi
