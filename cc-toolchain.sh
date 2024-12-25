@@ -69,7 +69,7 @@ deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-backports main r
 EOF
 
 sudo apt update || true
-sudo apt install -y libssl-dev:arm64 #libstdc++6:arm64
+sudo apt install -y libssl-dev:arm64 libstdc++6:arm64
 fi
 
 PROC=$(nproc --all)
@@ -240,7 +240,7 @@ cmake -B build -G "Ninja" \
 	.
 cmake --build build --target install -- -j$PROC \
 	&& cd ../ \
-	|| (echo "[!] libdispatch build failure"; exit 1)
+	|| { echo "[!] libdispatch build failure"; exit 1; }
 
 echo "[!] Build cctools"
 git clone --depth=1 https://github.com/tpoechtrager/cctools-port/

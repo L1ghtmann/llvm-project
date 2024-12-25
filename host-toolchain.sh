@@ -146,10 +146,12 @@ cd a-ld
 cmake -B build -G "Ninja" \
 	-DCMAKE_BUILD_TYPE=RELEASE \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
+	-DCMAKE_C_COMPILER="/usr/bin/clang" \
+	-DCMAKE_CXX_COMPILER="/usr/bin/clang++" \
 	.
 cmake --build build --target install -- -j$PROC \
 	&& cd ../ \
-	|| (echo "[!] libdispatch build failure"; exit 1)
+	|| { echo "[!] libdispatch build failure"; exit 1; }
 
 echo "[!] Build cctools"
 git clone https://github.com/tpoechtrager/cctools-port
