@@ -93,7 +93,6 @@ cmake --build build-host --target llvm-config llvm-tblgen clang-ast-dump clang-t
 
 # cross-compile llvm/clang for target plat with support for useful targets
 cmake -Wno-dev -B build -G "Ninja" \
-	-DCMAKE_CROSSCOMPILING=ON \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	-DCMAKE_SYSTEM_VERSION="12" \
 	-DLLVM_TARGET_ARCH=$ARCH \
@@ -122,7 +121,6 @@ cmake --build build --target install -- -j$PROC \
 # echo "[!] Build compiler-rt"
 # cross-compile compiler-rt for target plat with support for useful targets
 # cmake -Wno-dev -B build-compiler-rt -G "Ninja" \
-#	-DCMAKE_CROSSCOMPILING=ON \
 # 	-DCMAKE_SYSTEM_NAME="Linux" \
 # 	-DCMAKE_SYSTEM_VERSION="12" \
 # 	-DLLVM_TARGET_ARCH=$ARCH \
@@ -206,7 +204,6 @@ cmake --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
 
 # build tapi for target arch with support for useful targets
 cmake -Wno-dev -B build -G "Ninja" \
-	-DCMAKE_CROSSCOMPILING=ON \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	-DCMAKE_SYSTEM_VERSION="12" \
 	-DLLVM_TARGET_ARCH=$ARCH \
