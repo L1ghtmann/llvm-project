@@ -118,34 +118,34 @@ cmake --build build --target install -- -j$PROC \
 	|| { echo "[!] LLVM build failure"; exit 1; }
 
 # TODO
-# echo "[!] Build compiler-rt"
+echo "[!] Build compiler-rt"
 # cross-compile compiler-rt for target plat with support for useful targets
-# cmake -Wno-dev -B build-compiler-rt -G "Ninja" \
-# 	-DCMAKE_SYSTEM_NAME="Linux" \
-# 	-DCMAKE_SYSTEM_VERSION="12" \
-# 	-DLLVM_TARGET_ARCH=$ARCH \
-# 	-DLLVM_DEFAULT_TARGET_TRIPLE=$ARCH-linux-gnu \
-# 	-DLLVM_ENABLE_PROJECTS="clang" \
-# 	-DLLVM_ENABLE_RUNTIMES="compiler-rt" \
-# 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
-#	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin" \
-# 	-DLLVM_INCLUDE_TESTS=OFF \
-# 	-DCLANG_INCLUDE_TESTS=OFF \
-# 	-DCOMPILER_RT_INCLUDE_TESTS=OFF \
-# 	-DCOMPILER_RT_BUILD_CRT=OFF \
-# 	-DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
-# 	-DCOMPILER_RT_BUILD_PROFILE=OFF \
-# 	-DCOMPILER_RT_BUILD_SANITIZERS=OFF \
-# 	-DCOMPILER_RT_BUILD_XRAY=OFF \
-# 	-DCOMPILER_RT_BUILD_BUILTINS=ON \
-# 	-DBUILTINS_CMAKE_ARGS="-DCOMPILER_RT_ENABLE_IOS=ON -DCOMPILER_RT_ENABLE_WATCHOS=ON -DCOMPILER_RT_ENABLE_TVOS=ON" \
-# 	-DCMAKE_BUILD_TYPE=MinSizeRel \
-#	-DCMAKE_C_COMPILER="/usr/bin/$ARCH-linux-gnu-gcc" \
-#	-DCMAKE_CXX_COMPILER="/usr/bin/$ARCH-linux-gnu-g++" \
-# 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
-# 	-S llvm
-# cmake --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
-#    || { echo "[!] compiler-rt build failure"; exit 1; }
+cmake -Wno-dev -B build-compiler-rt -G "Ninja" \
+	-DCMAKE_SYSTEM_NAME="Linux" \
+	-DCMAKE_SYSTEM_VERSION="12" \
+	-DLLVM_TARGET_ARCH=$ARCH \
+	-DLLVM_DEFAULT_TARGET_TRIPLE=$ARCH-linux-gnu \
+	-DLLVM_ENABLE_PROJECTS="clang" \
+	-DLLVM_ENABLE_RUNTIMES="compiler-rt" \
+	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin" \
+	-DLLVM_INCLUDE_TESTS=OFF \
+	-DCLANG_INCLUDE_TESTS=OFF \
+	-DCOMPILER_RT_INCLUDE_TESTS=OFF \
+	-DCOMPILER_RT_BUILD_CRT=OFF \
+	-DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+	-DCOMPILER_RT_BUILD_PROFILE=OFF \
+	-DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+	-DCOMPILER_RT_BUILD_XRAY=OFF \
+	-DCOMPILER_RT_BUILD_BUILTINS=ON \
+	-DBUILTINS_CMAKE_ARGS="-DCOMPILER_RT_ENABLE_IOS=ON -DCOMPILER_RT_ENABLE_WATCHOS=ON -DCOMPILER_RT_ENABLE_TVOS=ON" \
+	-DCMAKE_BUILD_TYPE=MinSizeRel \
+	-DCMAKE_C_COMPILER="/usr/bin/$ARCH-linux-gnu-gcc" \
+	-DCMAKE_CXX_COMPILER="/usr/bin/$ARCH-linux-gnu-g++" \
+	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
+	-S llvm
+cmake --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
+   || { echo "[!] compiler-rt build failure"; exit 1; }
 
 cd $WDIR
 echo "[!] Build libplist"
