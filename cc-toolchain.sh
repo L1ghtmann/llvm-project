@@ -189,10 +189,11 @@ FLAGS+=" -L$SYSROOT_PATH/lib -L/usr/lib/$TARGET_ARCH"
 FLAGS+=" -L$SYSROOT_PATH/../lib/gcc-cross/$TARGET_ARCH/$GCC_VERSION"
 
 echo "[!] Build tapi"
-git clone --depth=1 https://github.com/tpoechtrager/apple-libtapi -b 1100.0.11
+git clone --depth=1 https://github.com/tpoechtrager/apple-libtapi
 cd apple-libtapi
 # build tapi-catered llvm/clang-tblgen for host with support for host and target
 cmake -Wno-dev -B build-tblgens -G "Ninja" \
+	-DLLVM_ENABLE_PROJECTS="clang" \
 	-DLLVM_TARGETS_TO_BUILD="X86" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
@@ -208,7 +209,7 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_SYSTEM_VERSION="12" \
 	-DLLVM_TARGET_ARCH=$ARCH \
 	-DLLVM_DEFAULT_TARGET_TRIPLE=$ARCH-linux-gnu \
-	-DLLVM_ENABLE_PROJECTS="libtapi" \
+	-DLLVM_ENABLE_PROJECTS="tapi;clang" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
 	-DLLVM_ENABLE_WARNINGS=OFF \

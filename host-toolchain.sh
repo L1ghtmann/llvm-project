@@ -112,9 +112,10 @@ make -j$PROC DESTDIR="$WDIR/linux/iphone/" \
 				|| { echo "[!] ldid build failure"; exit 1; }
 
 echo "[!] Build tapi"
-git clone https://github.com/tpoechtrager/apple-libtapi -b 1100.0.11
+git clone https://github.com/tpoechtrager/apple-libtapi
 cd apple-libtapi
 cmake -Wno-dev -B build-tblgens -G "Ninja" \
+	-DLLVM_ENABLE_PROJECTS="clang" \
 	-DLLVM_TARGETS_TO_BUILD="X86" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
@@ -125,13 +126,14 @@ cmake --build build-tblgens --target llvm-tblgen clang-tblgen -- -j$PROC \
 	|| { echo "[!] tblgen build failure"; exit 1; }
 
 cmake -Wno-dev -B build -G "Ninja" \
-	-DLLVM_ENABLE_PROJECTS="libtapi" \
+	-DLLVM_ENABLE_PROJECTS="tapi;clang" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DTAPI_FULL_VERSION="$(cat $PWD/VERSION.txt | grep "tapi" | grep -o '[[:digit:]].*')" \
 	-DLLVM_TABLEGEN="$PWD/build-tblgens/bin/llvm-tblgen" \
 	-DCLANG_TABLEGEN="$PWD/build-tblgens/bin/clang-tblgen" \
+	-DCLANG_TABLEGEN_EXE="$PWD/build-tblgens/bin/clang-tblgen" \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
 	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
