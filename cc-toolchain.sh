@@ -224,7 +224,7 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/ $FLAGS" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S src/llvm
-cmake --build build --target install-libtapi install-tapi-headers install-tapi -- -j$PROC \
+cmake --build build --target install-libtapi install-tapi-headers -- -j$PROC \
 	&& cd ../ \
 	|| { echo "[!] (lib)tapi build failure"; exit 1; }
 
