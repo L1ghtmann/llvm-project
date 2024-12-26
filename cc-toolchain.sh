@@ -227,13 +227,30 @@ cmake --build build --target install-libtapi install-tapi-headers install-tapi -
 	&& cd ../ \
 	|| { echo "[!] (lib)tapi build failure"; exit 1; }
 
+echo "[!] Build libdispatch"
+git clone --depth=1 https://github.com/tpoechtrager/apple-libdispatch/ a-ld
+cd a-ld
+cmake -B build -G "Ninja" \
+	-DCMAKE_C_COMPILER="/usr/bin/clang" \
+	-DCMAKE_CXX_COMPILER="/usr/bin/clang++" \
+	-DCMAKE_C_FLAGS="$FLAGS" \
+	-DCMAKE_CXX_FLAGS="$FLAGS" \
+	-DCMAKE_BUILD_TYPE=RELEASE \
+	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
+	.
+cmake --build build --target install -- -j$PROC \
+	&& cd ../ \
+	|| { echo "[!] libdispatch build failure"; exit 1; }
+
 echo "[!] Build cctools"
-git clone --depth=1 https://github.com/tpoechtrager/cctools-port/ -b 986-ld64-711
+git clone --depth=1 https://github.com/tpoechtrager/cctools-port/
 ./cctools-port/cctools/configure --prefix="$WDIR/linux/iphone/" \
 	--host=$ARCH-linux-gnu \
 	--target=aarch64-apple-darwin14 \
 	--enable-tapi-support \
 	--with-libtapi="$WDIR/linux/iphone/" \
+	--with-libdispatch="$WDIR/linux/iphone/" \
+	--with-libblocksruntime="$WDIR/linux/iphone/" \
 	--program-prefix="" \
 	CC="/usr/bin/clang" \
 	CXX="/usr/bin/clang++" \
