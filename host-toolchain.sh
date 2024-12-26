@@ -112,7 +112,7 @@ make -j$PROC DESTDIR="$WDIR/linux/iphone/" \
 				|| { echo "[!] ldid build failure"; exit 1; }
 
 echo "[!] Build tapi"
-git clone https://github.com/tpoechtrager/apple-libtapi
+git clone https://github.com/l1ghtmann/apple-libtapi -b tapi-link-fix
 cd apple-libtapi
 cmake -Wno-dev -B build-tblgens -G "Ninja" \
 	-DLLVM_ENABLE_PROJECTS="clang" \
@@ -138,7 +138,7 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_CXX_FLAGS="-I$PWD/src/llvm/projects/clang/include/ -I$PWD/build/projects/clang/include/" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S src/llvm
-cmake --build build --target install-libtapi install-tapi-headers -- -j$PROC \
+cmake --build build --target install-libtapi install-tapi-headers install-tapi -- -j$PROC \
 	&& cd ../ \
 	|| { echo "[!] (lib)tapi build failure"; exit 1; }
 
