@@ -95,6 +95,7 @@ elif [[ -x $(command -v pacman) ]]; then
         pkg-config \
         python3 || exit 1
 
+    gpg --recv-key 216094DFD0CB81EF
     git clone --depth=1 --recursive https://aur.archlinux.org/openssl-static.git ossl-static/
     cd ossl-static/
     env EUID=1 makepkg -si \
