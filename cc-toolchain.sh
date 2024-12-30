@@ -17,61 +17,9 @@ if [[ -z $1 ]]; then
 	exit 0
 fi
 
-echo "[!] Build prep"
-# https://stackoverflow.com/a/44333806
-if ! dpkg -l tzdata > /dev/null; then
-	sudo ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
-	sudo DEBIAN_FRONTEND=noninteractive apt install -y tzdata
-	sudo dpkg-reconfigure --frontend noninteractive tzdata
-fi
+./install-deps.sh $1
 
 ARCH="$1"
-
-sudo apt update || true
-# this is very silly, but cctools-port
-# treats the llvm-build ld as GNU
-# and attempts to pass '-z', which
-# apple's ld64 doesn't support
-# so need GNU ld + clang for that
-# also use for (lib)tapi build
-sudo apt install -y build-essential \
-	autoconf \
-	automake \
-	cmake \
-	coreutils \
-	clang \
-	git \
-	libssl-dev \
-	libtool \
-	make \
-	ninja-build \
-	pkg-config \
-	python3 \
-	gcc-$ARCH-linux-gnu \
-	g++-$ARCH-linux-gnu || exit 1
-
-# NOTE: change arch listed in section below depending on your target
-# Unfortunately, dpkg arch is not always 1:1 with the standard name (e.g., aarch64 -> arm64)
-sudo dpkg --add-architecture arm64
-
-CODENAME="$(. /etc/os-release; echo ${VERSION_CODENAME/*, /})"
-
-# need these as default --add-architecture links 404 :/
-if [[ -z "$(cat /etc/apt/sources.list | grep arm64)" ]]; then
-sudo tee -a /etc/apt/sources.list << EOF
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME main restricted
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-updates main restricted
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME universe
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-updates universe
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-updates multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-backports main restricted universe multiverse
-EOF
-
-sudo apt update || true
-sudo apt install -y libssl-dev:arm64 #libstdc++6:arm64
-fi
-
 PROC=$(nproc --all)
 WDIR="$HOME/work"
 LLVM="$PWD"

@@ -16,33 +16,7 @@ if ! [[ -z $1 ]]; then
 	exit 0
 fi
 
-echo "[!] Build prep"
-# https://stackoverflow.com/a/44333806
-if ! dpkg -l tzdata > /dev/null; then
-	sudo ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
-	sudo DEBIAN_FRONTEND=noninteractive apt install -y tzdata
-	sudo dpkg-reconfigure --frontend noninteractive tzdata
-fi
-
-sudo apt update || true
-# this is very silly, but cctools-port
-# treats the llvm-build ld as GNU
-# and attempts to pass '-z', which
-# apple's ld64 doesn't support
-# so need GNU ld + clang for that
-sudo apt install -y build-essential \
-	autoconf \
-	automake \
-	cmake \
-	coreutils \
-	clang \
-	git \
-	libssl-dev \
-	libtool \
-	make \
-	ninja-build \
-	pkg-config \
-	python3 || exit 1
+./install-deps.sh host
 
 PROC=$(nproc --all)
 WDIR="$HOME/work"

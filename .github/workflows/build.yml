@@ -23,22 +23,28 @@ jobs:
     needs: create-release
     strategy:
       matrix:
-        arch:
-          - "aarch64"
-          - "host"
+        arch: ["aarch64", "host"]
+        img: ["ubuntu:24.04", "archlinux:base-devel", "fedora:39"]
 
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Build toolchain
         run: |
-          if [[ ${{ matrix.arch }} == host ]]; then
-            ./host-toolchain.sh
-            mv -v $HOME/iOSToolchain.tar.xz $HOME/iOSToolchain-$(uname -m).tar.xz
-          else
-            ./cc-toolchain.sh ${{ matrix.arch }}
-            mv -v $HOME/iOSToolchain.tar.xz $HOME/iOSToolchain-${{ matrix.arch }}.tar.xz
-          fi
+          docker run \
+          --rm \
+          -v $PWD:/workspace \
+          -w /workspace \
+          ${{ matrix.img }} \
+          sh -c "
+            if [ "${{ matrix.arch }}" = "host" ]; then
+              ./host-toolchain.sh
+              mv -v $HOME/iOSToolchain.tar.xz $HOME/iOSToolchain-$(uname -m).tar.xz
+            else
+              ./cc-toolchain.sh ${{ matrix.arch }}
+              mv -v $HOME/iOSToolchain.tar.xz $HOME/iOSToolchain-${{ matrix.arch }}.tar.xz
+            fi
+          "
 
       - name: Upload toolchain
         run: |
