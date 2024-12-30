@@ -9,6 +9,7 @@ type=$1
 
 if [[ $type != host ]]; then
     if [[ -x $(command -v apt) ]]; then
+        apt install -y sudo
         # NOTE: change arch listed in section below depending on your target
         # Unfortunately, dpkg arch is not always 1:1 with the standard name (e.g., aarch64 -> arm64)
         sudo dpkg --add-architecture arm64
@@ -28,10 +29,11 @@ EOF
             sudo apt install -y libssl-dev:arm64
         fi
     elif [[ -x $(command -v pacman) ]]; then
-        sudo pacman -Syu aarch64-linux-gnu-openssl
+        pacman -Syu Sudo
+        sudo pacman -Syy aarch64-linux-gnu-openssl
     elif [[ -x $(command -v dnf) ]]; then
-        sudo dnf install openssl-libs.aarch64
-        sudo dnf install openssl-devel.aarch64
+        dnf install -y sudo
+        sudo dnf install openssl-libs.aarch64 openssl-devel.aarch64
     else
         echo "Sorry - distro unidentifiable."
         exit 1
@@ -41,6 +43,8 @@ fi
 echo "[!] Build prep"
 
 if [[ -x $(command -v apt) ]]; then
+    apt install -y sudo
+
     # https://stackoverflow.com/a/44333806
     if ! dpkg -l tzdata > /dev/null; then
         sudo ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
@@ -74,12 +78,14 @@ if [[ -x $(command -v apt) ]]; then
             g++-$type-linux-gnu || exit 1
     fi
 elif [[ -x $(command -v pacman) ]]; then
+    pacman -Syu sudo
+
     if ! pacman -Qs tzdata > /dev/null; then
         sudo ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
-        sudo pacman -Syu --noconfirm tzdata
+        sudo pacman -Syy --noconfirm tzdata
     fi
 
-    sudo pacman -Syu --noconfirm base-devel \
+    sudo pacman -Syy --noconfirm base-devel \
         autoconf \
         automake \
         cmake \
@@ -99,6 +105,8 @@ elif [[ -x $(command -v pacman) ]]; then
             $type-linux-gnu-g++ || exit 1
     fi
 elif [[ -x $(command -v dnf) ]]; then
+    dnf install -y sudo
+
     if ! rpm -q tzdata > /dev/null; then
         sudo ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
         sudo dnf install -y tzdata
