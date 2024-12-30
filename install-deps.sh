@@ -95,12 +95,21 @@ elif [[ -x $(command -v pacman) ]]; then
         pkg-config \
         python3 || exit 1
 
-    gpg --recv-key 216094DFD0CB81EF
-    git clone --depth=1 --recursive https://aur.archlinux.org/openssl-static.git ossl-static/
-    cd ossl-static/
-    env EUID=1 makepkg -si \
-        && cd ../; rm -rf ossl-static/ \
-        || exit 1
+    # Build libcrypto.a (3.3)
+    if [[ -z "$(find /usr -name libcrypto.a)" ]]; then
+        # allow static libs on Arch
+        sed -i 's/!staticlibs/staticlibs/g' /etc/makepkg.conf &> /dev/null || true
+        # fix perl's bin not being in $PATH on Arch
+        source /etc/profile &> /dev/null || true
+        git clone --depth=1 https://github.com/openssl/openssl -b openssl-3.3
+        cd openssl
+        ./config && make -j$(nproc --all) build_libs
+        mkdir -p /usr/local/lib
+        cp libcrypto.a /usr/local/lib
+        cd ../ && rm -rf openssl
+    else
+        echo "libcrypto.a exists. Skipping..."
+    fi
 
     if [[ $type != host ]]; then
         sudo pacman -Syy --noconfirm \
@@ -128,6 +137,6 @@ elif [[ -x $(command -v dnf) ]]; then
     if [[ $type != host ]]; then
         sudo dnf install -y \
             gcc-$type-linux-gnu \
-            g++-$type-linux-gnu || exit 1
+            gcc-c++-$type-linux-gnu || exit 1
     fi
 fi
