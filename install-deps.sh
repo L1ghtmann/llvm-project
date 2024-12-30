@@ -95,12 +95,17 @@ elif [[ -x $(command -v pacman) ]]; then
         clang \
         git \
         openssl \
-        openssl-static \
         libtool \
         make \
         ninja \
         pkg-config \
         python3 || exit 1
+
+    git clone --depth=1 --recursive https://aur.archlinux.org/openssl-static.git ossl-static/
+    cd ossl-static/
+    makepkg -si \
+        && cd ../; rm -rf ossl-static/ \
+        || exit 1
 
     if [[ $type != host ]]; then
         sudo pacman -Syy --noconfirm \
