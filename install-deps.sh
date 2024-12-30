@@ -112,9 +112,7 @@ elif [[ -x $(command -v pacman) ]]; then
     fi
 
     if [[ $type != host ]]; then
-        sudo pacman -Syy --noconfirm \
-            $type-linux-gnu-gcc \
-            $type-linux-gnu-g++ || exit 1
+        sudo pacman -Syy --noconfirm $type-linux-gnu-gcc || exit 1
     fi
 elif [[ -x $(command -v dnf) ]]; then
     dnf update -y
@@ -136,6 +134,7 @@ elif [[ -x $(command -v dnf) ]]; then
 
     if [[ $type != host ]]; then
         sudo dnf install -y \
+            glibc-devel \
             gcc-$type-linux-gnu \
             gcc-c++-$type-linux-gnu || exit 1
     fi
