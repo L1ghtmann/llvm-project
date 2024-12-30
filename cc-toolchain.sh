@@ -24,7 +24,7 @@ PROC=$(nproc --all)
 WDIR="$HOME/work"
 LLVM="$PWD"
 if [[ -x $(command -v pacman) ]]; then
-	GCC="$ARCH-linux-gnu-g++"
+	GCC="$ARCH-linux-gnu-gcc"
 	GPP="$ARCH-linux-gnu-g++"
 else
 	GCC="gcc-$ARCH-linux-gnu"
