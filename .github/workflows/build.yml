@@ -22,6 +22,7 @@ jobs:
   build:
     needs: create-release
     strategy:
+      fail-fast: false
       matrix:
         arch: ["aarch64", "host"]
         img: ["ubuntu:24.04", "archlinux:base-devel", "fedora:39"]

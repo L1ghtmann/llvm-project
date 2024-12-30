@@ -45,7 +45,7 @@ fi
 echo "[!] Build prep"
 
 if [[ -x $(command -v apt) ]]; then
-    sudo apt update
+    apt update
     apt install -y sudo
 
     # https://stackoverflow.com/a/44333806
