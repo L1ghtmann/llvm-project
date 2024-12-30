@@ -81,13 +81,7 @@ if [[ -x $(command -v apt) ]]; then
     fi
 elif [[ -x $(command -v pacman) ]]; then
     pacman -Syu sudo
-
-    if ! pacman -Qs tzdata > /dev/null; then
-        sudo ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
-        sudo pacman -Syy --noconfirm tzdata
-    fi
-
-    sudo pacman -Syy --noconfirm base-devel \
+    sudo pacman -Syy --noconfirm --needed base-devel \
         autoconf \
         automake \
         cmake \
@@ -103,7 +97,7 @@ elif [[ -x $(command -v pacman) ]]; then
 
     git clone --depth=1 --recursive https://aur.archlinux.org/openssl-static.git ossl-static/
     cd ossl-static/
-    makepkg -si \
+    env EUID=1 makepkg -si \
         && cd ../; rm -rf ossl-static/ \
         || exit 1
 
@@ -115,13 +109,6 @@ elif [[ -x $(command -v pacman) ]]; then
 elif [[ -x $(command -v dnf) ]]; then
     dnf update -y
     dnf install -y sudo
-
-    if ! rpm -q tzdata > /dev/null; then
-        sudo ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
-        sudo dnf install -y tzdata
-        sudo timedatectl set-timezone America/New_York
-    fi
-
     sudo dnf install -y @development-tools \
         autoconf \
         automake \
