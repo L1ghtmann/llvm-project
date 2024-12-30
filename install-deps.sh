@@ -9,6 +9,7 @@ type=$1
 
 if [[ $type != host ]]; then
     if [[ -x $(command -v apt) ]]; then
+        apt update
         apt install -y sudo
         # NOTE: change arch listed in section below depending on your target
         # Unfortunately, dpkg arch is not always 1:1 with the standard name (e.g., aarch64 -> arm64)
@@ -29,9 +30,10 @@ EOF
             sudo apt install -y libssl-dev:arm64
         fi
     elif [[ -x $(command -v pacman) ]]; then
-        pacman -Syu Sudo
+        pacman -Syu sudo
         sudo pacman -Syy aarch64-linux-gnu-openssl
     elif [[ -x $(command -v dnf) ]]; then
+        dnf update -y
         dnf install -y sudo
         sudo dnf install openssl-libs.aarch64 openssl-devel.aarch64
     else
@@ -43,6 +45,7 @@ fi
 echo "[!] Build prep"
 
 if [[ -x $(command -v apt) ]]; then
+    sudo apt update
     apt install -y sudo
 
     # https://stackoverflow.com/a/44333806
@@ -52,7 +55,6 @@ if [[ -x $(command -v apt) ]]; then
         sudo dpkg-reconfigure --frontend noninteractive tzdata
     fi
 
-    sudo apt update || true
     # this is very silly, but cctools-port
     # treats the llvm-build ld as GNU
     # and attempts to pass '-z', which
@@ -105,6 +107,7 @@ elif [[ -x $(command -v pacman) ]]; then
             $type-linux-gnu-g++ || exit 1
     fi
 elif [[ -x $(command -v dnf) ]]; then
+    dnf update -y
     dnf install -y sudo
 
     if ! rpm -q tzdata > /dev/null; then
@@ -113,7 +116,6 @@ elif [[ -x $(command -v dnf) ]]; then
         sudo timedatectl set-timezone America/New_York
     fi
 
-    sudo dnf update -y
     sudo dnf install -y @development-tools \
         autoconf \
         automake \
