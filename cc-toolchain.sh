@@ -23,13 +23,6 @@ ARCH="$1"
 PROC=$(nproc --all)
 WDIR="$HOME/work"
 LLVM="$PWD"
-if [[ -x $(command -v pacman) ]]; then
-	GCC="$ARCH-linux-gnu-gcc"
-	GPP="$ARCH-linux-gnu-g++"
-else
-	GCC="gcc-$ARCH-linux-gnu"
-	GPP="g++-$ARCH-linux-gnu"
-fi
 
 mkdir -pv $WDIR/{linux/iphone/,libplist/}
 
@@ -65,8 +58,8 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
 	-DCMAKE_BUILD_TYPE=MinSizeRel \
-	-DCMAKE_C_COMPILER="/usr/bin/$GCC" \
-	-DCMAKE_CXX_COMPILER="/usr/bin/$GPP" \
+	-DCMAKE_C_COMPILER="/usr/bin/$ARCH-linux-gnu-gcc" \
+	-DCMAKE_CXX_COMPILER="/usr/bin/$ARCH-linux-gnu-g++" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-S llvm
 cmake --build build --target install -- -j$PROC \
@@ -95,8 +88,8 @@ cmake --build build --target install -- -j$PROC \
 # 	-DCOMPILER_RT_BUILD_BUILTINS=ON \
 # 	-DBUILTINS_CMAKE_ARGS="-DCOMPILER_RT_ENABLE_IOS=ON -DCOMPILER_RT_ENABLE_WATCHOS=ON -DCOMPILER_RT_ENABLE_TVOS=ON" \
 # 	-DCMAKE_BUILD_TYPE=MinSizeRel \
-#	-DCMAKE_C_COMPILER="/usr/bin/$GCC" \
-#	-DCMAKE_CXX_COMPILER="/usr/bin/$GPP" \
+#	-DCMAKE_C_COMPILER="/usr/bin/$ARCH-linux-gnu-gcc" \
+#	-DCMAKE_CXX_COMPILER="/usr/bin/$ARCH-linux-gnu-g++" \
 # 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 # 	-S llvm
 # cmake --build build-compiler-rt --target install-compiler-rt -- -j$PROC \
@@ -112,8 +105,8 @@ cd lp
 			--enable-static \
 			--disable-shared \
 			--host=$ARCH-linux-gnu \
-			CC=/usr/bin/$GCC \
-			CXX=/usr/bin/$GPP
+			CC=/usr/bin/$ARCH-linux-gnu-gcc \
+			CXX=/usr/bin/$ARCH-linux-gnu-g++
 make -j$PROC install \
 	&& cp -av $WDIR/libplist/bin/plistutil $WDIR/linux/iphone/bin/; cd ../ \
 	|| { echo "[!] libplist build failure"; exit 1; }
@@ -126,8 +119,8 @@ make -j$PROC DESTDIR="$WDIR/linux/iphone/" \
 			LIBCRYPTO_LIBS="-l:libcrypto.a -lpthread -ldl" \
 			LIBPLIST_INCLUDES="-I$WDIR/libplist/include" \
 			LIBPLIST_LIBS="$WDIR/libplist/lib/libplist-2.0.a" \
-			CC=/usr/bin/$GCC \
-			CXX=/usr/bin/$GPP \
+			CC=/usr/bin/$ARCH-linux-gnu-gcc \
+			CXX=/usr/bin/$ARCH-linux-gnu-g++ \
 			install \
 				&& cd ../ \
 				|| { echo "[!] ldid build failure"; exit 1; }
@@ -231,6 +224,6 @@ if [[ $num != $count ]]; then
 fi
 
 echo "[!] Prep build for release"
-tar -cJvf $HOME/iOSToolchain.tar.xz -C $WDIR/ linux/iphone/ \
+tar -cJvf $LLVM/iOSToolchain.tar.xz -C $WDIR/ linux/iphone/ \
    && echo "[!!] Success!" \
    || echo "[xx] Failure!"

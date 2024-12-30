@@ -20,6 +20,7 @@ fi
 
 PROC=$(nproc --all)
 WDIR="$HOME/work"
+LLVM="$PWD"
 
 mkdir -pv $WDIR/{linux/iphone/,libplist/}
 
@@ -146,6 +147,6 @@ make -j$PROC install \
 	|| { echo "[!] cctools-port build failure"; exit 1; }
 
 echo "[!] Prep build for release"
-tar -cJvf $HOME/iOSToolchain.tar.xz -C $WDIR/ linux/iphone/ \
+tar -cJvf $LLVM/iOSToolchain.tar.xz -C $WDIR/ linux/iphone/ \
    && echo "[!!] Success!" \
    || echo "[xx] Failure!"

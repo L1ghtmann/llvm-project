@@ -95,6 +95,7 @@ elif [[ -x $(command -v pacman) ]]; then
         clang \
         git \
         openssl \
+        openssl-static \
         libtool \
         make \
         ninja \
@@ -128,7 +129,8 @@ elif [[ -x $(command -v dnf) ]]; then
         make \
         ninja-build \
         pkgconfig \
-        python3 || exit 1
+        python3 \
+        which || exit 1
 
     if [[ $type != host ]]; then
         sudo dnf install -y \
