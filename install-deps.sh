@@ -95,24 +95,10 @@ elif [[ -x $(command -v pacman) ]]; then
         pkg-config \
         python3 || exit 1
 
-    # Build libcrypto.a (3.3)
-    if [[ -z "$(find /usr -name libcrypto.a)" ]]; then
-        # allow static libs on Arch
-        sed -i 's/!staticlibs/staticlibs/g' /etc/makepkg.conf &> /dev/null || true
-        # fix perl's bin not being in $PATH on Arch
-        source /etc/profile &> /dev/null || true
-        git clone --depth=1 https://github.com/openssl/openssl -b openssl-3.3
-        cd openssl
-        ./config && make -j$(nproc --all) build_libs
-        mkdir -p /usr/local/lib
-        cp libcrypto.a /usr/local/lib
-        cd ../ && rm -rf openssl
-    else
-        echo "libcrypto.a exists. Skipping..."
-    fi
-
     if [[ $type != host ]]; then
-        sudo pacman -Syy --noconfirm $type-linux-gnu-gcc || exit 1
+        sudo pacman -Syy --noconfirm \
+        $type-linux-gnu-gcc \
+        $type-linux-gnu-glibc || exit 1
     fi
 elif [[ -x $(command -v dnf) ]]; then
     dnf update -y
@@ -134,8 +120,24 @@ elif [[ -x $(command -v dnf) ]]; then
 
     if [[ $type != host ]]; then
         sudo dnf install -y \
-            glibc-devel \
+            $type-linux-gnu-glibc \
             gcc-$type-linux-gnu \
             gcc-c++-$type-linux-gnu || exit 1
     fi
+fi
+
+# Build libcrypto.a (3.3)
+if [[ -z "$(find /usr -name libcrypto.a)" ]]; then
+    # allow static libs on Arch
+    sed -i 's/!staticlibs/staticlibs/g' /etc/makepkg.conf &> /dev/null || true
+    # fix perl's bin not being in $PATH on Arch
+    source /etc/profile &> /dev/null || true
+    git clone --depth=1 https://github.com/openssl/openssl -b openssl-3.3
+    cd openssl
+    ./config && make -j$(nproc --all) build_libs
+    mkdir -p /usr/local/lib
+    cp -v libcrypto.a /usr/local/lib
+    cd ../ && rm -rf openssl
+else
+    echo "libcrypto.a exists. Skipping..."
 fi
