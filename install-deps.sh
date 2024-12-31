@@ -7,41 +7,6 @@ fi
 
 type=$1
 
-if [[ $type != host ]]; then
-    if [[ -x $(command -v apt) ]]; then
-        apt update
-        apt install -y sudo
-        # NOTE: change arch listed in section below depending on your target
-        # Unfortunately, dpkg arch is not always 1:1 with the standard name (e.g., aarch64 -> arm64)
-        sudo dpkg --add-architecture arm64
-
-        CODENAME="$(. /etc/os-release; echo ${VERSION_CODENAME/*, /})"
-
-        # need these as default --add-architecture links 404 :/
-        if [[ -z "$(cat /etc/apt/sources.list | grep arm64)" ]]; then
-sudo tee -a /etc/apt/sources.list << EOF
-    deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME main restricted
-    deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-updates main restricted
-    deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME universe
-    deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-updates universe
-EOF
-
-            sudo apt update || true
-            sudo apt install -y libssl-dev:arm64
-        fi
-    elif [[ -x $(command -v pacman) ]]; then
-        pacman -Syu sudo
-        sudo pacman -Syy aarch64-linux-gnu-openssl
-    elif [[ -x $(command -v dnf) ]]; then
-        dnf update -y
-        dnf install -y sudo
-        sudo dnf install openssl-libs.aarch64 openssl-devel.aarch64
-    else
-        echo "Sorry - distro unidentifiable."
-        exit 1
-    fi
-fi
-
 echo "[!] Build prep"
 
 if [[ -x $(command -v apt) ]]; then
@@ -126,6 +91,31 @@ elif [[ -x $(command -v dnf) ]]; then
     fi
 fi
 
+# if [[ $type != host ]]; then
+#     if [[ -x $(command -v apt) ]]; then
+#         apt update
+#         apt install -y sudo
+#         # NOTE: change arch listed in section below depending on your target
+#         # Unfortunately, dpkg arch is not always 1:1 with the standard name (e.g., aarch64 -> arm64)
+#         sudo dpkg --add-architecture arm64
+
+#         CODENAME="$(. /etc/os-release; echo ${VERSION_CODENAME/*, /})"
+
+#         # need these as default --add-architecture links 404 :/
+#         if [[ -z "$(cat /etc/apt/sources.list | grep arm64)" ]]; then
+# sudo tee -a /etc/apt/sources.list << EOF
+#     deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME main restricted
+#     deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-updates main restricted
+#     deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME universe
+#     deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $CODENAME-updates universe
+# EOF
+
+#             sudo apt update || true
+#             sudo apt install -y libssl-dev:arm64
+#         fi
+#     fi
+# fi
+
 # Build libcrypto.a (3.3)
 if [[ -z "$(find /usr -name libcrypto.a)" ]]; then
     # allow static libs on Arch
@@ -134,9 +124,13 @@ if [[ -z "$(find /usr -name libcrypto.a)" ]]; then
     source /etc/profile &> /dev/null || true
     git clone --depth=1 https://github.com/openssl/openssl -b openssl-3.3
     cd openssl
-    ./config && make -j$(nproc --all) build_libs
+    if [[ $type == host ]]; then
+        ./config && make -j$(nproc --all) build_libs
+    else
+        ./config && CC="$type-linux-gnu-gcc" CXX="$type-linux-gnu-g++" make -j$(nproc --all) build_libs
+    fi
     mkdir -p /usr/local/lib
-    cp -v libcrypto.a /usr/local/lib
+    cp -v libcrypto.a /usr/local/lib || exit 1
     cd ../ && rm -rf openssl
 else
     echo "libcrypto.a exists. Skipping..."
