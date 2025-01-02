@@ -36,6 +36,7 @@ if [[ -x $(command -v apt) ]]; then
         libtool \
         make \
         ninja-build \
+        perl \
         pkg-config \
         python3 || exit 1
 
@@ -57,6 +58,7 @@ elif [[ -x $(command -v pacman) ]]; then
         libtool \
         make \
         ninja \
+        perl \
         pkg-config \
         python3 || exit 1
 
@@ -79,6 +81,7 @@ elif [[ -x $(command -v dnf) ]]; then
         libtool \
         make \
         ninja-build \
+        perl \
         pkgconfig \
         python3 \
         which || exit 1
@@ -86,7 +89,7 @@ elif [[ -x $(command -v dnf) ]]; then
     if [[ $type != host ]]; then
         # modify as needed
         sudo dnf install -y dnf-plugins-core || exit 1
-        dnf copr enable lantw44/aarch64-linux-gnu-toolchain || exit 1
+        dnf copr enable -y lantw44/aarch64-linux-gnu-toolchain || exit 1
         sudo dnf install -y \
             gcc-$type-linux-gnu \
             gcc-c++-$type-linux-gnu \
