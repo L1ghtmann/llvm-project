@@ -39,12 +39,14 @@ jobs:
           ${{ matrix.img }} \
           sh -c "
             set -e
+            img="${{ matrix.img }}"
+            distro="${img%%:*}"
             if [ "${{ matrix.arch }}" = "host" ]; then
               ./host-toolchain.sh
-              mv -v iOSToolchain.tar.xz iOSToolchain-$(uname -m).tar.xz
+              mv -v iOSToolchain.tar.xz iOSToolchain-$(uname -m)-$distro.tar.xz
             else
               ./cc-toolchain.sh ${{ matrix.arch }}
-              mv -v iOSToolchain.tar.xz iOSToolchain-${{ matrix.arch }}.tar.xz
+              mv -v iOSToolchain.tar.xz iOSToolchain-${{ matrix.arch }}-$distro.tar.xz
             fi
           "
 

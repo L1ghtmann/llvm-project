@@ -63,7 +63,7 @@ elif [[ -x $(command -v pacman) ]]; then
     if [[ $type != host ]]; then
         sudo pacman -Syy --noconfirm \
         $type-linux-gnu-gcc \
-        $type-linux-gnu-glibc || exit 1
+        lib32-glibc || exit 1 #gnu/stubs-32.h
     fi
 elif [[ -x $(command -v dnf) ]]; then
     dnf update -y
@@ -84,10 +84,12 @@ elif [[ -x $(command -v dnf) ]]; then
         which || exit 1
 
     if [[ $type != host ]]; then
+        # modify as needed
+        dnf copr enable lantw44/aarch64-linux-gnu-toolchain || exit 1
         sudo dnf install -y \
-            $type-linux-gnu-glibc \
             gcc-$type-linux-gnu \
-            gcc-c++-$type-linux-gnu || exit 1
+            gcc-c++-$type-linux-gnu \
+            $type-linux-gnu-glibc \ || exit 1
     fi
 fi
 
@@ -116,21 +118,23 @@ fi
 #     fi
 # fi
 
-# Build libcrypto.a (3.3)
+# Build libcrypto.a (3.3) + install headers
 if [[ -z "$(find /usr -name libcrypto.a)" ]]; then
     # allow static libs on Arch
     sed -i 's/!staticlibs/staticlibs/g' /etc/makepkg.conf &> /dev/null || true
     # fix perl's bin not being in $PATH on Arch
     source /etc/profile &> /dev/null || true
+    # fix perl's bin not being in $PATH on Fedora
+    source /etc/bashrc &> /dev/null || true
     git clone --depth=1 https://github.com/openssl/openssl -b openssl-3.3
     cd openssl
     if [[ $type == host ]]; then
-        ./config && make -j$(nproc --all) build_libs
+        ./config && make -j$(nproc --all) install_sw || exit 1 #build_libs
     else
-        ./config && CC="$type-linux-gnu-gcc" CXX="$type-linux-gnu-g++" make -j$(nproc --all) build_libs
+        ./config && CC="$type-linux-gnu-gcc" CXX="$type-linux-gnu-g++" make -j$(nproc --all) install_sw || exit 1 #build_libs
     fi
-    mkdir -p /usr/local/lib
-    cp -v libcrypto.a /usr/local/lib || exit 1
+    # mkdir -p /usr/local/lib
+    # cp -v libcrypto.a /usr/local/lib || exit 1
     cd ../ && rm -rf openssl
 else
     echo "libcrypto.a exists. Skipping..."
