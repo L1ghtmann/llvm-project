@@ -85,11 +85,12 @@ elif [[ -x $(command -v dnf) ]]; then
 
     if [[ $type != host ]]; then
         # modify as needed
+        sudo dnf install -y dnf-plugins-core || exit 1
         dnf copr enable lantw44/aarch64-linux-gnu-toolchain || exit 1
         sudo dnf install -y \
             gcc-$type-linux-gnu \
             gcc-c++-$type-linux-gnu \
-            $type-linux-gnu-glibc \ || exit 1
+            $type-linux-gnu-glibc || exit 1
     fi
 fi
 
@@ -119,7 +120,8 @@ fi
 # fi
 
 # Build libcrypto.a (3.3) + install headers
-if [[ -z "$(find /usr -name libcrypto.a)" ]]; then
+if [[ $type == host && -z "$(find /usr/ -name libcrypto.a)" ]] || \
+   [[ $type != host && -z "$(find /usr/lib/$type-linux-gnu/ -name libcrypto.a)" ]]; then
     # allow static libs on Arch
     sed -i 's/!staticlibs/staticlibs/g' /etc/makepkg.conf &> /dev/null || true
     # fix perl's bin not being in $PATH on Arch
