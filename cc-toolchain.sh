@@ -50,8 +50,8 @@ sudo apt install -y build-essential \
 	g++-$ARCH-linux-gnu || exit 1
 
 # install newer clang (want to maintain older glibc, but need newer dev tooling)
-curl -fsSL https://apt.llvm.org/llvm.sh | bash -s -- 18
-sudo apt install -y --no-install-recommends clang-18 libc++-18-dev libc++abi-18-dev
+sudo curl -fsSL https://apt.llvm.org/llvm.sh | bash -s -- 18 || exit 1
+sudo apt install -y --no-install-recommends clang-18 libc++-18-dev libc++abi-18-dev || exit 1
 
 # NOTE: change arch listed in section below depending on your target
 # Unfortunately, dpkg arch is not always 1:1 with the standard name (e.g., aarch64 -> arm64)
