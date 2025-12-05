@@ -34,11 +34,10 @@ jobs:
         run: |
           if [[ ${{ matrix.arch }} == host ]]; then
             sudo apt-get install -y debootstrap
-            sudo debootstrap --variant=minbase focal $HOME/ubuntu20.04-rootfs http://archive.ubuntu.com/ubuntu/
+            sudo debootstrap focal $HOME/ubuntu20.04-rootfs http://archive.ubuntu.com/ubuntu/
             sudo chroot $HOME/ubuntu20.04-rootfs apt-get update
             sudo chroot $HOME/ubuntu20.04-rootfs apt-get install -y \
-              build-essential autoconf automake cmake coreutils clang git \
-              libssl-dev libtool make ninja-build pkg-config python3
+              build-essential libc6-dev libstdc++-9-dev libssl-dev zlib1g-dev pkg-config
 
             export SYSROOT=$HOME/ubuntu20.04-rootfs
             export CFLAGS="--sysroot=$SYSROOT -isystem $SYSROOT/usr/include -O2 -pipe"
@@ -53,12 +52,10 @@ jobs:
           else
             sudo apt-get install -y debootstrap qemu-user-static binfmt-support
             # Note: pinning to arm64 here given the arch discrepancy with ${{ matrix.arch }}
-            sudo debootstrap --variant=minbase --arch=arm64 focal $HOME/ubuntu20.04-${{ matrix.arch }}-rootfs http://ports.ubuntu.com/ubuntu-ports/
+            sudo debootstrap --arch=arm64 focal $HOME/ubuntu20.04-${{ matrix.arch }}-rootfs http://ports.ubuntu.com/ubuntu-ports/
             sudo chroot $HOME/ubuntu20.04-${{ matrix.arch }}-rootfs apt-get update
             sudo chroot $HOME/ubuntu20.04-${{ matrix.arch }}-rootfs apt-get install -y \
-              build-essential autoconf automake cmake coreutils clang git \
-              libssl-dev libtool make ninja-build pkg-config python3 \
-              gcc-${{ matrix.arch }}-linux-gnu g++-${{ matrix.arch }}-linux-gnu
+              build-essential libc6-dev libstdc++-9-dev libssl-dev zlib1g-dev pkg-config
 
             export SYSROOT=$HOME/ubuntu20.04-${{ matrix.arch }}-rootfs
             export CFLAGS="--sysroot=$SYSROOT -isystem $SYSROOT/usr/include -O2 -pipe"
