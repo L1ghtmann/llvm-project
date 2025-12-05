@@ -27,15 +27,37 @@ jobs:
           - "aarch64"
           - "host"
 
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - name: Build toolchain
+      - name: Bootstrap & Build toolchain
         run: |
+          sudo apt-get install -y debootstrap
           if [[ ${{ matrix.arch }} == host ]]; then
+            sudo debootstrap --variant=minbase focal /opt/ubuntu20.04-rootfs http://archive.ubuntu.com/ubuntu/
+
+            export SYSROOT=/opt/ubuntu20.04-rootfs
+            export CFLAGS="--sysroot=$SYSROOT -isystem $SYSROOT/usr/include -O2 -pipe"
+            export CXXFLAGS="$CFLAGS"
+            export LDFLAGS="--sysroot=$SYSROOT \
+              -L$SYSROOT/lib/x86_64-linux-gnu \
+              -L$SYSROOT/usr/lib/x86_64-linux-gnu \
+              -Wl,--dynamic-linker=/lib64/ld-linux-x86-64.so.2"
+
             ./host-toolchain.sh
             mv -v $HOME/iOSToolchain.tar.xz $HOME/iOSToolchain-$(uname -m).tar.xz
           else
+            # Note: pinning to arm64 here given the arch discrepancy with ${{ matrix.arch }}
+            sudo debootstrap --variant=minbase --arch=arm64 focal /opt/ubuntu20.04-${{ matrix.arch }}-rootfs http://archive.ubuntu.com/ubuntu/
+
+            export SYSROOT=/opt/ubuntu20.04-${{ matrix.arch }}-rootfs
+            export CFLAGS="--sysroot=$SYSROOT -isystem $SYSROOT/usr/include -O2 -pipe"
+            export CXXFLAGS="$CFLAGS_ARM64"
+            export LDFLAGS="--sysroot=$SYSROOT \
+              -L$SYSROOT/lib/aarch64-linux-gnu \
+              -L$SYSROOT/usr/lib/aarch64-linux-gnu \
+              -Wl,--dynamic-linker=/lib/ld-linux-aarch64.so.1"
+
             ./cc-toolchain.sh ${{ matrix.arch }}
             mv -v $HOME/iOSToolchain.tar.xz $HOME/iOSToolchain-${{ matrix.arch }}.tar.xz
           fi
