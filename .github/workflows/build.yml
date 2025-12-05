@@ -48,7 +48,7 @@ jobs:
             mv -v $HOME/iOSToolchain.tar.xz $HOME/iOSToolchain-$(uname -m).tar.xz
           else
             # Note: pinning to arm64 here given the arch discrepancy with ${{ matrix.arch }}
-            sudo debootstrap --variant=minbase --arch=arm64 focal /opt/ubuntu20.04-${{ matrix.arch }}-rootfs http://archive.ubuntu.com/ubuntu/
+            sudo debootstrap --variant=minbase --arch=arm64 focal /opt/ubuntu20.04-${{ matrix.arch }}-rootfs http://ports.ubuntu.com/ubuntu-ports/
 
             export SYSROOT=/opt/ubuntu20.04-${{ matrix.arch }}-rootfs
             export CFLAGS="--sysroot=$SYSROOT -isystem $SYSROOT/usr/include -O2 -pipe"
