@@ -36,7 +36,13 @@ jobs:
           sudo debootstrap focal $HOME/ubuntu20.04-rootfs http://archive.ubuntu.com/ubuntu/
           sudo chroot $HOME/ubuntu20.04-rootfs apt-get update
           sudo chroot $HOME/ubuntu20.04-rootfs apt-get install -y \
-            build-essential libc6-dev libstdc++-9-dev libssl-dev zlib1g-dev pkg-config
+                build-essential \
+                libc6-dev \
+                libpthread-stubs0-dev \
+                libstdc++-9-dev \
+                libssl-dev \
+                zlib1g-dev \
+                pkg-config
 
           export SYSROOT=$HOME/ubuntu20.04-rootfs
 
