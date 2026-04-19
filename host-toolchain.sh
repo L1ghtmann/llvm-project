@@ -53,6 +53,7 @@ echo "[!] Build LLVM/Clang"
 cmake -Wno-dev -B build -G "Ninja" \
    -DLLVM_ENABLE_PROJECTS="clang" \
    -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
+   -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
    -DLLVM_LINK_LLVM_DYLIB=ON \
    -DLLVM_ENABLE_LIBXML2=OFF \
    -DLLVM_ENABLE_ZLIB=OFF \
@@ -74,6 +75,7 @@ cmake --build build --target install -- -j$PROC \
 #     -DLLVM_ENABLE_PROJECTS="clang" \
 #     -DLLVM_ENABLE_RUNTIMES="compiler-rt" \
 #     -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+#     -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
 #     -DLLVM_INCLUDE_TESTS=OFF \
 #     -DCLANG_INCLUDE_TESTS=OFF \
 #     -DCOMPILER_RT_INCLUDE_TESTS=OFF \
@@ -117,6 +119,7 @@ cd apple-libtapi
 cmake -Wno-dev -B build-tblgens -G "Ninja" \
 	-DLLVM_ENABLE_PROJECTS="clang" \
 	-DLLVM_TARGETS_TO_BUILD="X86" \
+    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
@@ -129,6 +132,7 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DLLVM_ENABLE_PROJECTS="tapi;clang" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DTAPI_FULL_VERSION="$(cat $PWD/VERSION.txt | grep "tapi" | grep -o '[[:digit:]].*')" \
 	-DLLVM_TABLEGEN="$PWD/build-tblgens/bin/llvm-tblgen" \
@@ -147,6 +151,7 @@ git clone --depth=1 https://github.com/tpoechtrager/apple-libdispatch/ a-ld
 cd a-ld
 cmake -B build -G "Ninja" \
 	-DCMAKE_BUILD_TYPE=RELEASE \
+    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
 	-DCMAKE_INSTALL_PREFIX="$WDIR/linux/iphone/" \
 	-DCMAKE_C_COMPILER="/usr/bin/clang" \
 	-DCMAKE_CXX_COMPILER="/usr/bin/clang++" \
@@ -166,7 +171,7 @@ cd cctools-port/cctools/
 	--with-libblocksruntime="$WDIR/linux/iphone/" \
 	--program-prefix="" \
 	CXXABI_LIB="-l:libc++abi.a" \
-	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-rpath,'\$\$ORIGIN/../lib64' -Wl,-z,origin" \
+	LDFLAGS="$LDFLAGS -Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-rpath,'\$\$ORIGIN/../lib64' -Wl,-z,origin" \
 		|| { echo "[!] cctools-port configure failure"; cat config.log; exit 1; }
 make -j$PROC install \
 	|| { echo "[!] cctools-port build failure"; exit 1; }

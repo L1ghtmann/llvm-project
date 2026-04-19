@@ -32,39 +32,29 @@ jobs:
       - uses: actions/checkout@main
       - name: Bootstrap & Build toolchain
         run: |
+          sudo apt-get install -y debootstrap
+          sudo debootstrap focal $HOME/ubuntu20.04-rootfs http://archive.ubuntu.com/ubuntu/
+          sudo chroot $HOME/ubuntu20.04-rootfs apt-get update
+          sudo chroot $HOME/ubuntu20.04-rootfs apt-get install -y \
+            build-essential libc6-dev libstdc++-9-dev libssl-dev zlib1g-dev pkg-config
+
+          export SYSROOT=$HOME/ubuntu20.04-rootfs
+
+          export PKG_CONFIG_DIR=
+          export PKG_CONFIG_LIBDIR="$SYSROOT/usr/lib/x86_64-linux-gnu/pkgconfig:$SYSROOT/usr/share/pkgconfig"
+          export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
+
+          export CFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include -O2 -pipe"
+          export CXXFLAGS="$CFLAGS"
+          export LDFLAGS="--sysroot=$SYSROOT \
+            -L$SYSROOT/lib/x86_64-linux-gnu \
+            -L$SYSROOT/usr/lib/x86_64-linux-gnu \
+            -Wl,--dynamic-linker=/lib64/ld-linux-x86-64.so.2"
+
           if [[ ${{ matrix.arch }} == host ]]; then
-            sudo apt-get install -y debootstrap
-            sudo debootstrap focal $HOME/ubuntu20.04-rootfs http://archive.ubuntu.com/ubuntu/
-            sudo chroot $HOME/ubuntu20.04-rootfs apt-get update
-            sudo chroot $HOME/ubuntu20.04-rootfs apt-get install -y \
-              build-essential libc6-dev libstdc++-9-dev libssl-dev zlib1g-dev pkg-config
-
-            export SYSROOT=$HOME/ubuntu20.04-rootfs
-            export CFLAGS="--sysroot=$SYSROOT -isystem $SYSROOT/usr/include -O2 -pipe"
-            export CXXFLAGS="$CFLAGS"
-            export LDFLAGS="--sysroot=$SYSROOT \
-              -L$SYSROOT/lib/x86_64-linux-gnu \
-              -L$SYSROOT/usr/lib/x86_64-linux-gnu \
-              -Wl,--dynamic-linker=/lib64/ld-linux-x86-64.so.2"
-
             ./host-toolchain.sh
             mv -v $HOME/iOSToolchain.tar.xz $HOME/iOSToolchain-$(uname -m).tar.xz
           else
-            sudo apt-get install -y debootstrap qemu-user-static binfmt-support
-            # Note: pinning to arm64 here given the arch discrepancy with ${{ matrix.arch }}
-            sudo debootstrap --arch=arm64 focal $HOME/ubuntu20.04-${{ matrix.arch }}-rootfs http://ports.ubuntu.com/ubuntu-ports/
-            sudo chroot $HOME/ubuntu20.04-${{ matrix.arch }}-rootfs apt-get update
-            sudo chroot $HOME/ubuntu20.04-${{ matrix.arch }}-rootfs apt-get install -y \
-              build-essential libc6-dev libstdc++-9-dev libssl-dev zlib1g-dev pkg-config
-
-            export SYSROOT=$HOME/ubuntu20.04-${{ matrix.arch }}-rootfs
-            export CFLAGS="--sysroot=$SYSROOT -isystem $SYSROOT/usr/include -O2 -pipe"
-            export CXXFLAGS="$CFLAGS_ARM64"
-            export LDFLAGS="--sysroot=$SYSROOT \
-              -L$SYSROOT/lib/aarch64-linux-gnu \
-              -L$SYSROOT/usr/lib/aarch64-linux-gnu \
-              -Wl,--dynamic-linker=/lib/ld-linux-aarch64.so.1"
-
             ./cc-toolchain.sh ${{ matrix.arch }}
             mv -v $HOME/iOSToolchain.tar.xz $HOME/iOSToolchain-${{ matrix.arch }}.tar.xz
           fi

@@ -83,6 +83,7 @@ echo "[!] Prep build for release"
 cmake -Wno-dev -B build-host -G "Ninja" \
 	-DLLVM_ENABLE_PROJECTS=clang \
 	-DLLVM_TARGETS_TO_BUILD="X86" \
+    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
@@ -97,6 +98,7 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_SYSTEM_VERSION="12" \
 	-DLLVM_TARGET_ARCH=$ARCH \
 	-DLLVM_DEFAULT_TARGET_TRIPLE=$ARCH-linux-gnu \
+    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
 	-DLLVM_ENABLE_PROJECTS="clang" \
 	-DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
 	-DLLVM_LINK_LLVM_DYLIB=ON \
@@ -128,6 +130,7 @@ cmake --build build --target install -- -j$PROC \
 # 	-DLLVM_ENABLE_PROJECTS="clang" \
 # 	-DLLVM_ENABLE_RUNTIMES="compiler-rt" \
 # 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
+#   -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
 #	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin" \
 # 	-DLLVM_INCLUDE_TESTS=OFF \
 # 	-DCLANG_INCLUDE_TESTS=OFF \
@@ -178,15 +181,7 @@ make -j$PROC DESTDIR="$WDIR/linux/iphone/" \
 				|| { echo "[!] ldid build failure"; exit 1; }
 
 # clang cc config
-TARGET_ARCH="$ARCH-linux-gnu"
-GCC_VERSION=$(gcc -dumpversion)
-SYSROOT_PATH="/usr/$TARGET_ARCH"
-
-FLAGS="-Qunused-arguments"
-FLAGS+=" --target=$TARGET_ARCH"
-FLAGS+=" -I$SYSROOT_PATH/include/c++/$GCC_VERSION/$TARGET_ARCH"
-FLAGS+=" -L$SYSROOT_PATH/lib -L/usr/lib/$TARGET_ARCH"
-FLAGS+=" -L$SYSROOT_PATH/../lib/gcc-cross/$TARGET_ARCH/$GCC_VERSION"
+FLAGS="--target=$ARCH-linux-gnu -Qunused-arguments"
 
 echo "[!] Build tapi"
 git clone --depth=1 https://github.com/tpoechtrager/apple-libtapi -b 1300.6.5
@@ -195,6 +190,7 @@ cd apple-libtapi
 cmake -Wno-dev -B build-tblgens -G "Ninja" \
 	-DLLVM_ENABLE_PROJECTS="clang" \
 	-DLLVM_TARGETS_TO_BUILD="X86" \
+    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
@@ -209,6 +205,7 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_SYSTEM_VERSION="12" \
 	-DLLVM_TARGET_ARCH=$ARCH \
 	-DLLVM_DEFAULT_TARGET_TRIPLE=$ARCH-linux-gnu \
+    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
 	-DLLVM_ENABLE_PROJECTS="tapi;clang" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
@@ -234,6 +231,7 @@ cd a-ld
 cmake -B build -G "Ninja" \
 	-DCMAKE_C_COMPILER="/usr/bin/clang" \
 	-DCMAKE_CXX_COMPILER="/usr/bin/clang++" \
+    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
 	-DCMAKE_C_FLAGS="$FLAGS" \
 	-DCMAKE_CXX_FLAGS="$FLAGS" \
 	-DCMAKE_BUILD_TYPE=RELEASE \
@@ -258,7 +256,7 @@ git clone --depth=1 https://github.com/tpoechtrager/cctools-port/ -b 1010.6-ld64
 	CFLAGS="$FLAGS" \
 	CXXFLAGS="$FLAGS" \
 	CXXABI_LIB="-l:libc++abi.a" \
-	LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-rpath,'\$\$ORIGIN/../lib64' -Wl,-z,origin" \
+	LDFLAGS="$LDFLAGS -Wl,-rpath,'\$\$ORIGIN/../lib' -Wl,-rpath,'\$\$ORIGIN/../lib64' -Wl,-z,origin" \
 		|| { echo "[!] cctools-port configure failure"; cat config.log; exit 1; }
 make -j$PROC install \
 	&& cd $LLVM \
