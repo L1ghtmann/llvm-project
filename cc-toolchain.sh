@@ -83,7 +83,7 @@ echo "[!] Prep build for release"
 cmake -Wno-dev -B build-host -G "Ninja" \
 	-DLLVM_ENABLE_PROJECTS=clang \
 	-DLLVM_TARGETS_TO_BUILD="X86" \
-    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
+    -DCMAKE_TOOLCHAIN_FILE="$LLVM/older-sysroot.cmake" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
@@ -98,7 +98,7 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_SYSTEM_VERSION="12" \
 	-DLLVM_TARGET_ARCH=$ARCH \
 	-DLLVM_DEFAULT_TARGET_TRIPLE=$ARCH-linux-gnu \
-    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
+    -DCMAKE_TOOLCHAIN_FILE="$LLVM/older-sysroot.cmake" \
 	-DLLVM_ENABLE_PROJECTS="clang" \
 	-DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
 	-DLLVM_LINK_LLVM_DYLIB=ON \
@@ -130,7 +130,7 @@ cmake --build build --target install -- -j$PROC \
 # 	-DLLVM_ENABLE_PROJECTS="clang" \
 # 	-DLLVM_ENABLE_RUNTIMES="compiler-rt" \
 # 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
-#   -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
+#   -DCMAKE_TOOLCHAIN_FILE="$LLVM/older-sysroot.cmake" \
 #	-DLLVM_NATIVE_TOOL_DIR="$PWD/build-host/bin" \
 # 	-DLLVM_INCLUDE_TESTS=OFF \
 # 	-DCLANG_INCLUDE_TESTS=OFF \
@@ -190,7 +190,7 @@ cd apple-libtapi
 cmake -Wno-dev -B build-tblgens -G "Ninja" \
 	-DLLVM_ENABLE_PROJECTS="clang" \
 	-DLLVM_TARGETS_TO_BUILD="X86" \
-    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
+    -DCMAKE_TOOLCHAIN_FILE="$LLVM/older-sysroot.cmake" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_ENABLE_WARNINGS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF \
@@ -205,7 +205,7 @@ cmake -Wno-dev -B build -G "Ninja" \
 	-DCMAKE_SYSTEM_VERSION="12" \
 	-DLLVM_TARGET_ARCH=$ARCH \
 	-DLLVM_DEFAULT_TARGET_TRIPLE=$ARCH-linux-gnu \
-    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
+    -DCMAKE_TOOLCHAIN_FILE="$LLVM/older-sysroot.cmake" \
 	-DLLVM_ENABLE_PROJECTS="tapi;clang" \
 	-DLLVM_INCLUDE_TESTS=OFF \
 	-DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64" \
@@ -231,7 +231,7 @@ cd a-ld
 cmake -B build -G "Ninja" \
 	-DCMAKE_C_COMPILER="/usr/bin/clang" \
 	-DCMAKE_CXX_COMPILER="/usr/bin/clang++" \
-    -DCMAKE_TOOLCHAIN_FILE="older-sysroot.cmake" \
+    -DCMAKE_TOOLCHAIN_FILE="$LLVM/older-sysroot.cmake" \
 	-DCMAKE_C_FLAGS="$FLAGS" \
 	-DCMAKE_CXX_FLAGS="$FLAGS" \
 	-DCMAKE_BUILD_TYPE=RELEASE \
