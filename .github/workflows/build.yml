@@ -37,6 +37,10 @@ jobs:
           sudo chroot $HOME/ubuntu20.04-rootfs apt-get update
           sudo chroot $HOME/ubuntu20.04-rootfs apt-get install -y \
                 build-essential \
+                gcc \
+                g++ \
+                libgcc-9-dev \
+                libstdc++-9-dev \
                 libc6-dev \
                 libpthread-stubs0-dev \
                 libstdc++-9-dev \
